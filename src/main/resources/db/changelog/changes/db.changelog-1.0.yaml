@@ -1,0 +1,184 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.0.0
+      author: memearenabot
+      comment: Создание начальной структуры базы данных
+      changes:
+        # Создание таблицы пользователей
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: telegram_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+              - column:
+                  name: first_name
+                  type: VARCHAR(255)
+              - column:
+                  name: last_name
+                  type: VARCHAR(255)
+              - column:
+                  name: language_code
+                  type: VARCHAR(10)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_activity
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_memes
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_likes
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_premium
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_admin
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: premium_since
+                  type: TIMESTAMP
+
+        # Создание индексов для таблицы пользователей
+        - createIndex:
+            indexName: idx_user_telegram_id
+            tableName: users
+            unique: true
+            columns:
+              - column:
+                  name: telegram_id
+        - createIndex:
+            indexName: idx_user_username
+            tableName: users
+            columns:
+              - column:
+                  name: username
+        - createIndex:
+            indexName: idx_user_created_at
+            tableName: users
+            columns:
+              - column:
+                  name: created_at
+
+        # Создание таблицы мемов
+        - createTable:
+            tableName: memes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: VARCHAR(1000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(1000)
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_entity_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_meme_user
+                    references: users(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: template_id
+                  type: VARCHAR(255)
+              - column:
+                  name: likes
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nft_url
+                  type: VARCHAR(1000)
+              - column:
+                  name: in_contest
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published_to_feed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published_at
+                  type: TIMESTAMP
+              - column:
+                  name: nft_created_at
+                  type: TIMESTAMP
+
+        # Создание индексов для таблицы мемов
+        - createIndex:
+            indexName: idx_meme_user_id
+            tableName: memes
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: idx_meme_in_contest
+            tableName: memes
+            columns:
+              - column:
+                  name: in_contest
+        - createIndex:
+            indexName: idx_meme_created_at
+            tableName: memes
+            columns:
+              - column:
+                  name: created_at 

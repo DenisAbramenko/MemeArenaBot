@@ -1,0 +1,185 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.1.0
+      author: memearenabot
+      comment: Добавление таблицы конкурсов мемов
+      changes:
+        # Создание таблицы конкурсов
+        - createTable:
+            tableName: contests
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(2000)
+              - column:
+                  name: created_by
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_contest_creator
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prize_description
+                  type: VARCHAR(1000)
+              - column:
+                  name: max_entries_per_user
+                  type: INT
+                  defaultValue: 3
+                  constraints:
+                    nullable: false
+
+        # Создание таблицы участников конкурса
+        - createTable:
+            tableName: contest_entries
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: contest_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_entry_contest
+                    references: contests(id)
+                    nullable: false
+              - column:
+                  name: meme_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_entry_meme
+                    references: memes(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_entry_user
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: votes
+                  type: INT
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rank
+                  type: INT
+
+        # Создание таблицы голосов
+        - createTable:
+            tableName: contest_votes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entry_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_vote_entry
+                    references: contest_entries(id)
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_vote_user
+                    references: users(id)
+                    nullable: false
+              - column:
+                  name: voted_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        # Создание индексов
+        - createIndex:
+            indexName: idx_contest_status
+            tableName: contests
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_contest_dates
+            tableName: contests
+            columns:
+              - column:
+                  name: start_date
+              - column:
+                  name: end_date
+        - createIndex:
+            indexName: idx_entry_contest
+            tableName: contest_entries
+            columns:
+              - column:
+                  name: contest_id
+        - createIndex:
+            indexName: idx_entry_user
+            tableName: contest_entries
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: idx_vote_entry
+            tableName: contest_votes
+            columns:
+              - column:
+                  name: entry_id
+        - createIndex:
+            indexName: idx_vote_user
+            tableName: contest_votes
+            columns:
+              - column:
+                  name: user_id
+
+        # Создание уникального ограничения для голосов (один пользователь - один голос за работу)
+        - addUniqueConstraint:
+            constraintName: uk_user_entry_vote
+            tableName: contest_votes
+            columnNames: user_id, entry_id 

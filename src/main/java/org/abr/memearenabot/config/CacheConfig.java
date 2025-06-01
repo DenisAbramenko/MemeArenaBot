@@ -17,25 +17,18 @@ import java.util.Arrays;
 @EnableCaching
 @EnableScheduling
 public class CacheConfig {
-    
+
     /**
      * Cache manager bean
      */
     @Bean
     public CacheManager cacheManager() {
         ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
-        cacheManager.setCacheNames(Arrays.asList(
-            "users", 
-            "memeTemplates", 
-            "topMemes", 
-            "contestMemes", 
-            "userMemes",
-            "topUsersByMemes",
-            "topUsersByLikes"
-        ));
+        cacheManager.setCacheNames(Arrays.asList("users", "memeTemplates", "topMemes", "contestMemes", "userMemes",
+                "topUsersByMemes", "topUsersByLikes"));
         return cacheManager;
     }
-    
+
     /**
      * Clear user caches every 12 hours
      */
@@ -45,7 +38,7 @@ public class CacheConfig {
         cacheManager().getCache("topUsersByMemes").clear();
         cacheManager().getCache("topUsersByLikes").clear();
     }
-    
+
     /**
      * Clear meme caches every 6 hours
      */
@@ -55,7 +48,7 @@ public class CacheConfig {
         cacheManager().getCache("contestMemes").clear();
         cacheManager().getCache("userMemes").clear();
     }
-    
+
     /**
      * Clear template cache every 24 hours
      */

@@ -20,19 +20,19 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class AsyncConfig implements AsyncConfigurer {
     private static final Logger logger = LoggerFactory.getLogger(AsyncConfig.class);
-    
+
     @Value("${async.core-pool-size:5}")
     private int corePoolSize;
-    
+
     @Value("${async.max-pool-size:10}")
     private int maxPoolSize;
-    
+
     @Value("${async.queue-capacity:25}")
     private int queueCapacity;
-    
+
     @Value("${async.thread-name-prefix:meme-async-}")
     private String threadNamePrefix;
-    
+
     /**
      * Configure async executor
      */
@@ -46,17 +46,17 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.initialize();
         return executor;
     }
-    
+
     @Override
     public Executor getAsyncExecutor() {
         return taskExecutor();
     }
-    
+
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return new CustomAsyncExceptionHandler();
     }
-    
+
     /**
      * Custom exception handler for async methods
      */
@@ -64,7 +64,7 @@ public class AsyncConfig implements AsyncConfigurer {
         @Override
         public void handleUncaughtException(Throwable ex, Method method, Object... params) {
             logger.error("Async exception occurred in method: {}", method.getName(), ex);
-            
+
             // Log parameters if needed
             if (params != null && params.length > 0) {
                 StringBuilder paramInfo = new StringBuilder();

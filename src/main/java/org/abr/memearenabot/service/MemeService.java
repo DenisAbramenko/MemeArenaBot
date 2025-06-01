@@ -1,5 +1,6 @@
 package org.abr.memearenabot.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -10,6 +11,7 @@ import org.abr.memearenabot.repository.MemeRepository;
 import org.abr.memearenabot.repository.UserRepository;
 import org.abr.memearenabot.service.ai.AIImageService;
 import org.abr.memearenabot.service.ai.ImageStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,16 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -41,26 +35,31 @@ public class MemeService {
     private static final String LOG_PREFIX = "[Meme-Service] ";
     private static final int FREE_USER_AI_MEME_DAILY_LIMIT = 1;
     private static final int FREE_USER_TEMPLATE_MEME_DAILY_LIMIT = 1;
-    private static final List<String> DEFAULT_TEMPLATES = Arrays.asList(
-        "drake", "distracted_boyfriend", "two_buttons", "change_my_mind", "expanding_brain"
-    );
-    
+    private static final List<String> DEFAULT_TEMPLATES = Arrays.asList("drake", "distracted_boyfriend", "two_buttons"
+            , "change_my_mind", "expanding_brain");
+
     private final Random random = new Random();
     private final List<String> memeTemplates = new CopyOnWriteArrayList<>();
     private final MemeRepository memeRepository;
     private final UserRepository userRepository;
     private final AIImageService aiImageService;
     private final ImageStorageService imageStorageService;
-    
+
+    private ContestService contestService;
     @Value("${meme.storage.url:https://meme-storage.com/memes/}")
     private String memeStorageUrl;
-    
     // Флаги для управления функциональностью
-    @Getter @Setter
+    @Getter
+    @Setter
     private boolean aiEnabled = true;
-    
-    @Getter @Setter
+    @Getter
+    @Setter
     private boolean voiceEnabled = true;
+
+    @Autowired
+    public void setContestService(ContestService contestService) {
+        this.contestService = contestService;
+    }
 
     /**
      * Инициализация стандартных шаблонов мемов
@@ -73,9 +72,9 @@ public class MemeService {
 
     /**
      * Генерирует мем с помощью ИИ на основе текстового описания
-     * 
+     *
      * @param description Описание мема
-     * @param user Пользователь
+     * @param user        Пользователь
      * @return URL сгенерированного мема
      * @throws MemeGenerationException если возникла ошибка при генерации
      */
@@ -83,20 +82,19 @@ public class MemeService {
     @Transactional
     public CompletableFuture<String> generateMeme(String description, User user) {
         validateAiMemeGeneration(description, user);
-        
+
         try {
-            log.info("{}Generating AI meme for user {}: {}", 
-                LOG_PREFIX, user.getTelegramId(), description);
-            
+            log.info("{}Generating AI meme for user {}: {}", LOG_PREFIX, user.getTelegramId(), description);
+
             // Использование AIImageService для генерации изображения
-            return aiImageService.generateMeme(description)
-                .thenApply(imageUrl -> processGeneratedAiMeme(imageUrl, description, user));
+            return aiImageService.generateMeme(description).thenApply(imageUrl -> processGeneratedAiMeme(imageUrl,
+                    description, user));
         } catch (Exception e) {
             log.error("{}Error generating AI meme: {}", LOG_PREFIX, e.getMessage(), e);
             throw new MemeGenerationException("Failed to generate AI meme", e);
         }
     }
-    
+
     /**
      * Обрабатывает сгенерированный ИИ мем
      */
@@ -104,10 +102,10 @@ public class MemeService {
         try {
             // Сохранение изображения локально
             String localImageUrl = imageStorageService.saveImageFromUrl(imageUrl);
-            
+
             // Сохранение в базу данных
             Meme meme = createMeme(localImageUrl, description, user, Meme.MemeType.AI_GENERATED);
-            
+
             log.debug("{}Generated AI meme with ID: {}", LOG_PREFIX, meme.getId());
             return localImageUrl;
         } catch (Exception e) {
@@ -115,28 +113,28 @@ public class MemeService {
             throw new MemeGenerationException("Error processing AI meme", e);
         }
     }
-    
+
     /**
      * Проверяет возможность генерации ИИ мема
      */
     private void validateAiMemeGeneration(String description, User user) {
         Objects.requireNonNull(description, "Description cannot be null");
         Objects.requireNonNull(user, "User cannot be null");
-        
+
         if (!aiEnabled) {
             log.warn("{}AI meme generation is disabled", LOG_PREFIX);
             throw new MemeGenerationException("AI meme generation is currently disabled", null);
         }
-        
+
         if (hasReachedAiLimit(user)) {
             log.warn("{}User {} has reached daily AI limit", LOG_PREFIX, user.getTelegramId());
             throw new MemeGenerationException("Daily AI generation limit reached", null);
         }
     }
-    
+
     /**
      * Генерирует мем с помощью ИИ (упрощенный метод)
-     * 
+     *
      * @param description Описание мема
      * @return URL сгенерированного мема
      * @throws MemeGenerationException если возникла ошибка при генерации
@@ -144,29 +142,29 @@ public class MemeService {
     @Transactional
     public String generateMeme(String description) {
         Objects.requireNonNull(description, "Description cannot be null");
-        
+
         if (!aiEnabled) {
             log.warn("{}AI meme generation is disabled", LOG_PREFIX);
             throw new MemeGenerationException("AI meme generation is currently disabled", null);
         }
-        
+
         try {
             log.info("{}Generating AI meme: {}", LOG_PREFIX, description);
-            
+
             // Использование AIImageService для генерации изображения (блокирующий вызов)
             String imageUrl = aiImageService.generateMeme(description).join();
-            
+
             // Сохранение изображения локально
             String localImageUrl = imageStorageService.saveImageFromUrl(imageUrl);
-            
+
             // Создание временного ID пользователя
             String tempUserId = generateTempUserId();
-            
+
             // Сохранение в базу данных
             Meme meme = new Meme(localImageUrl, description, tempUserId);
             meme.setType(Meme.MemeType.AI_GENERATED);
             memeRepository.save(meme);
-            
+
             log.debug("{}Generated AI meme with ID: {}", LOG_PREFIX, meme.getId());
             return localImageUrl;
         } catch (Exception e) {
@@ -177,35 +175,34 @@ public class MemeService {
 
     /**
      * Генерирует мем используя шаблон
-     * 
+     *
      * @param templateId ID шаблона
-     * @param textLines Текстовые строки для шаблона
-     * @param user Пользователь
+     * @param textLines  Текстовые строки для шаблона
+     * @param user       Пользователь
      * @return URL сгенерированного мема
      * @throws IllegalArgumentException если входные параметры некорректны
-     * @throws MemeGenerationException если возникла ошибка при генерации
+     * @throws MemeGenerationException  если возникла ошибка при генерации
      */
     @Async
     @Transactional
     public CompletableFuture<String> generateMemeFromTemplate(String templateId, List<String> textLines, User user) {
         validateTemplateParams(templateId, textLines);
         Objects.requireNonNull(user, "User cannot be null");
-        
+
         if (hasReachedTemplateLimit(user)) {
             log.warn("{}User {} has reached daily template limit", LOG_PREFIX, user.getTelegramId());
-            return CompletableFuture.failedFuture(
-                new MemeGenerationException("Daily template usage limit reached", null));
+            return CompletableFuture.failedFuture(new MemeGenerationException("Daily template usage limit reached",
+                    null));
         }
-        
+
         try {
-            log.info("{}Generating template meme for user {}: {}", 
-                LOG_PREFIX, user.getTelegramId(), templateId);
-            
+            log.info("{}Generating template meme for user {}: {}", LOG_PREFIX, user.getTelegramId(), templateId);
+
             String imageUrl = generateTemplateMemeUrl(templateId);
-            
+
             // Сохранение в базу данных
             Meme meme = createMeme(imageUrl, templateId, user, Meme.MemeType.TEMPLATE_BASED);
-            
+
             log.debug("{}Generated template meme with ID: {}", LOG_PREFIX, meme.getId());
             return CompletableFuture.completedFuture(imageUrl);
         } catch (IllegalArgumentException e) {
@@ -216,7 +213,7 @@ public class MemeService {
             throw new MemeGenerationException("Failed to generate template meme", e);
         }
     }
-    
+
     /**
      * Генерирует URL для шаблонного мема
      */
@@ -226,33 +223,33 @@ public class MemeService {
         String memeId = generateRandomId();
         return memeStorageUrl + "template_" + templateId + "_" + memeId + ".jpg";
     }
-    
+
     /**
      * Генерирует мем используя шаблон (упрощенный метод)
-     * 
+     *
      * @param templateId ID шаблона
-     * @param textLines Текстовые строки для шаблона
+     * @param textLines  Текстовые строки для шаблона
      * @return URL сгенерированного мема
      * @throws IllegalArgumentException если входные параметры некорректны
-     * @throws MemeGenerationException если возникла ошибка при генерации
+     * @throws MemeGenerationException  если возникла ошибка при генерации
      */
     @Transactional
     public String generateMemeFromTemplate(String templateId, List<String> textLines) {
         validateTemplateParams(templateId, textLines);
-        
+
         try {
             log.info("{}Generating template meme: {}", LOG_PREFIX, templateId);
-            
+
             String imageUrl = generateTemplateMemeUrl(templateId);
-            
+
             // Создание временного ID пользователя
             String tempUserId = generateTempUserId();
-            
+
             // Сохранение в базу данных
             Meme meme = new Meme(imageUrl, templateId, tempUserId, true);
             meme.setType(Meme.MemeType.TEMPLATE_BASED);
             memeRepository.save(meme);
-            
+
             log.debug("{}Generated template meme with ID: {}", LOG_PREFIX, meme.getId());
             return imageUrl;
         } catch (IllegalArgumentException e) {
@@ -266,34 +263,34 @@ public class MemeService {
 
     /**
      * Генерирует мем из голосового сообщения
-     * 
+     *
      * @param voiceData Байты голосового сообщения
-     * @param user Пользователь
+     * @param user      Пользователь
      * @return URL сгенерированного мема
      * @throws IllegalArgumentException если входные параметры некорректны
-     * @throws MemeGenerationException если возникла ошибка при генерации
+     * @throws MemeGenerationException  если возникла ошибка при генерации
      */
     @Async
     @Transactional
     public CompletableFuture<String> generateMemeFromVoice(byte[] voiceData, User user) {
         validateVoiceData(voiceData);
         Objects.requireNonNull(user, "User cannot be null");
-        
+
         if (!voiceEnabled) {
             log.warn("{}Voice meme generation is disabled", LOG_PREFIX);
-            return CompletableFuture.failedFuture(
-                new MemeGenerationException("Voice meme generation is currently disabled", null));
+            return CompletableFuture.failedFuture(new MemeGenerationException("Voice meme generation is currently " +
+                    "disabled", null));
         }
-        
+
         try {
-            log.info("{}Generating voice meme for user {}, data size: {} bytes", 
-                LOG_PREFIX, user.getTelegramId(), voiceData.length);
-            
+            log.info("{}Generating voice meme for user {}, data size: {} bytes", LOG_PREFIX, user.getTelegramId(),
+                    voiceData.length);
+
             String imageUrl = generateVoiceMemeUrl();
-            
+
             // Сохранение в базу данных
             Meme meme = createMeme(imageUrl, "Voice meme", user, Meme.MemeType.VOICE_GENERATED);
-            
+
             log.debug("{}Generated voice meme with ID: {}", LOG_PREFIX, meme.getId());
             return CompletableFuture.completedFuture(imageUrl);
         } catch (IllegalArgumentException e) {
@@ -304,7 +301,7 @@ public class MemeService {
             throw new MemeGenerationException("Failed to generate voice meme", e);
         }
     }
-    
+
     /**
      * Генерирует URL для голосового мема
      */
@@ -314,39 +311,39 @@ public class MemeService {
         String memeId = generateRandomId();
         return memeStorageUrl + "voice_generated_" + memeId + ".jpg";
     }
-    
+
     /**
      * Генерирует мем из голосового сообщения (упрощенный метод)
-     * 
+     *
      * @param voiceData Байты голосового сообщения
      * @return URL сгенерированного мема
      * @throws IllegalArgumentException если входные параметры некорректны
-     * @throws MemeGenerationException если возникла ошибка при генерации
+     * @throws MemeGenerationException  если возникла ошибка при генерации
      */
     @Transactional
     public String generateMemeFromVoice(byte[] voiceData) {
         validateVoiceData(voiceData);
-        
+
         if (!voiceEnabled) {
             log.warn("{}Voice meme generation is disabled", LOG_PREFIX);
             throw new MemeGenerationException("Voice meme generation is currently disabled", null);
         }
-        
+
         try {
             log.info("{}Generating voice meme, data size: {} bytes", LOG_PREFIX, voiceData.length);
-            
+
             String imageUrl = generateVoiceMemeUrl();
-            
+
             // Создание временного ID пользователя
             String tempUserId = generateTempUserId();
-            
+
             // Сохранение в базу данных
             Meme meme = new Meme();
             meme.setImageUrl(imageUrl);
             meme.setUserId(tempUserId);
             meme.setType(Meme.MemeType.VOICE_GENERATED);
             memeRepository.save(meme);
-            
+
             log.debug("{}Generated voice meme with ID: {}", LOG_PREFIX, meme.getId());
             return imageUrl;
         } catch (IllegalArgumentException e) {
@@ -360,7 +357,7 @@ public class MemeService {
 
     /**
      * Получает доступные шаблоны мемов
-     * 
+     *
      * @return Список доступных шаблонов
      */
     @Cacheable(value = "memeTemplates")
@@ -368,10 +365,10 @@ public class MemeService {
         log.debug("{}Fetching available meme templates", LOG_PREFIX);
         return Collections.unmodifiableList(new ArrayList<>(memeTemplates));
     }
-    
+
     /**
      * Добавляет новый шаблон
-     * 
+     *
      * @param templateName Название шаблона
      * @throws IllegalArgumentException если название пустое
      */
@@ -380,7 +377,7 @@ public class MemeService {
         if (!StringUtils.hasText(templateName)) {
             throw new IllegalArgumentException("Template name cannot be empty");
         }
-        
+
         if (!memeTemplates.contains(templateName)) {
             memeTemplates.add(templateName);
             log.info("{}Added new template: {}", LOG_PREFIX, templateName);
@@ -388,10 +385,10 @@ public class MemeService {
             log.debug("{}Template already exists: {}", LOG_PREFIX, templateName);
         }
     }
-    
+
     /**
      * Удаляет шаблон
-     * 
+     *
      * @param templateName Название шаблона
      * @return true если шаблон был удален
      * @throws IllegalArgumentException если название пустое
@@ -401,39 +398,37 @@ public class MemeService {
         if (!StringUtils.hasText(templateName)) {
             throw new IllegalArgumentException("Template name cannot be empty");
         }
-        
+
         boolean removed = memeTemplates.remove(templateName);
         if (removed) {
             log.info("{}Removed template: {}", LOG_PREFIX, templateName);
         } else {
             log.debug("{}Template not found: {}", LOG_PREFIX, templateName);
         }
-        
+
         return removed;
     }
-    
+
     /**
      * Публикует мем в ленту
-     * 
+     *
      * @param memeUrl URL мема
-     * @param userId ID пользователя
+     * @param userId  ID пользователя
      * @return true если публикация успешна
      */
     @Transactional
     public boolean publishMemeToFeed(String memeUrl, String userId) {
         validateParams(memeUrl, userId, "Invalid parameters for publishing to feed");
-        
-        return findMemeByUrl(memeUrl)
-            .map(meme -> {
-                publishMemeToFeed(meme, userId);
-                return true;
-            })
-            .orElseGet(() -> {
-                log.warn("{}Meme not found for URL: {}", LOG_PREFIX, memeUrl);
-                return false;
-            });
+
+        return findMemeByUrl(memeUrl).map(meme -> {
+            publishMemeToFeed(meme, userId);
+            return true;
+        }).orElseGet(() -> {
+            log.warn("{}Meme not found for URL: {}", LOG_PREFIX, memeUrl);
+            return false;
+        });
     }
-    
+
     /**
      * Публикует мем в ленту
      */
@@ -442,30 +437,27 @@ public class MemeService {
         meme.setPublishedToFeed(true);
         meme.setPublishedAt(LocalDateTime.now());
         memeRepository.save(meme);
-        
-        log.info("{}Meme {} published to feed by user {}", 
-            LOG_PREFIX, meme.getId(), userId);
+
+        log.info("{}Meme {} published to feed by user {}", LOG_PREFIX, meme.getId(), userId);
     }
-    
+
     /**
      * Создает NFT для мема
-     * 
+     *
      * @param memeUrl URL мема
-     * @param userId ID пользователя
+     * @param userId  ID пользователя
      * @return URL созданного NFT или null в случае ошибки
      */
     @Transactional
     public String createNFT(String memeUrl, String userId) {
         validateParams(memeUrl, userId, "Invalid parameters for NFT creation");
-        
-        return findMemeByUrl(memeUrl)
-            .map(meme -> createNftForMeme(meme, userId))
-            .orElseGet(() -> {
-                log.warn("{}Meme not found for URL: {}", LOG_PREFIX, memeUrl);
-                return null;
-            });
+
+        return findMemeByUrl(memeUrl).map(meme -> createNftForMeme(meme, userId)).orElseGet(() -> {
+            log.warn("{}Meme not found for URL: {}", LOG_PREFIX, memeUrl);
+            return null;
+        });
     }
-    
+
     /**
      * Создает NFT для мема
      */
@@ -475,34 +467,33 @@ public class MemeService {
             log.warn("{}NFT already exists for meme {}", LOG_PREFIX, meme.getId());
             return meme.getNftUrl();
         }
-        
+
         // Здесь должна быть интеграция с NFT маркетплейсом
         String nftUrl = "https://nft-marketplace.com/token/" + generateRandomId();
         meme.setNftUrl(nftUrl);
         meme.setNftCreatedAt(LocalDateTime.now());
         memeRepository.save(meme);
-        
-        log.info("{}NFT created for meme {} by user {}: {}", 
-            LOG_PREFIX, meme.getId(), userId, nftUrl);
+
+        log.info("{}NFT created for meme {} by user {}: {}", LOG_PREFIX, meme.getId(), userId, nftUrl);
         return nftUrl;
     }
-    
+
     /**
      * Создает мем и добавляет его пользователю
      */
     @Transactional
-    private Meme createMeme(String imageUrl, String description, User user, Meme.MemeType type) {
+    protected Meme createMeme(String imageUrl, String description, User user, Meme.MemeType type) {
         Meme meme = new Meme(imageUrl, description, user);
         meme.setType(type);
         memeRepository.save(meme);
-        
+
         // Добавление мема в коллекцию пользователя
         user.addMeme(meme);
         userRepository.save(user);
-        
+
         return meme;
     }
-    
+
     /**
      * Проверяет параметры шаблона
      */
@@ -510,12 +501,12 @@ public class MemeService {
         if (!StringUtils.hasText(templateId)) {
             throw new IllegalArgumentException("Template ID cannot be empty");
         }
-        
+
         if (textLines == null || textLines.isEmpty()) {
             throw new IllegalArgumentException("Text lines cannot be empty");
         }
     }
-    
+
     /**
      * Проверяет данные голосового сообщения
      */
@@ -524,7 +515,7 @@ public class MemeService {
             throw new IllegalArgumentException("Voice data cannot be empty");
         }
     }
-    
+
     /**
      * Проверяет параметры запроса
      */
@@ -534,24 +525,22 @@ public class MemeService {
             throw new IllegalArgumentException(errorMessage);
         }
     }
-    
+
     /**
      * Ищет мем по URL
      */
     private Optional<Meme> findMemeByUrl(String url) {
         // Оптимизированный метод поиска мема по URL
-        return memeRepository.findAll().stream()
-                .filter(meme -> Objects.equals(url, meme.getImageUrl()))
-                .findFirst();
+        return memeRepository.findAll().stream().filter(meme -> Objects.equals(url, meme.getImageUrl())).findFirst();
     }
-    
+
     /**
      * Генерирует временный ID пользователя
      */
     private String generateTempUserId() {
         return "user_" + random.nextInt(1000);
     }
-    
+
     /**
      * Получает общее количество мемов
      */
@@ -572,16 +561,16 @@ public class MemeService {
      */
     public boolean hasReachedAiLimit(User user) {
         Objects.requireNonNull(user, "User cannot be null");
-        
+
         if (user.getIsPremium()) {
             return false; // Premium users have no limits
         }
-        
+
         LocalDateTime startOfDay = getStartOfDay();
-        List<Meme> todayMemes = memeRepository.findByUserIdAndTypeAndCreatedAtAfter(
-            user.getTelegramId(), Meme.MemeType.AI_GENERATED, startOfDay);
-        
-        return todayMemes.size() >= FREE_USER_AI_MEME_DAILY_LIMIT;
+        List<Meme> todayMemes = memeRepository.findByUserIdAndTypeAndCreatedAtAfter(user.getTelegramId(),
+                Meme.MemeType.AI_GENERATED, startOfDay);
+
+        return !todayMemes.isEmpty();
     }
 
     /**
@@ -589,18 +578,18 @@ public class MemeService {
      */
     public boolean hasReachedTemplateLimit(User user) {
         Objects.requireNonNull(user, "User cannot be null");
-        
+
         if (user.getIsPremium()) {
             return false; // Premium users have no limits
         }
-        
+
         LocalDateTime startOfDay = getStartOfDay();
-        List<Meme> todayMemes = memeRepository.findByUserIdAndTypeAndCreatedAtAfter(
-            user.getTelegramId(), Meme.MemeType.TEMPLATE_BASED, startOfDay);
-        
-        return todayMemes.size() >= FREE_USER_TEMPLATE_MEME_DAILY_LIMIT;
+        List<Meme> todayMemes = memeRepository.findByUserIdAndTypeAndCreatedAtAfter(user.getTelegramId(),
+                Meme.MemeType.TEMPLATE_BASED, startOfDay);
+
+        return !todayMemes.isEmpty();
     }
-    
+
     /**
      * Возвращает начало текущего дня
      */
@@ -610,7 +599,7 @@ public class MemeService {
 
     /**
      * Выдает премиум-статус пользователю
-     * 
+     *
      * @param userId ID пользователя
      */
     @Transactional
@@ -619,12 +608,11 @@ public class MemeService {
             log.warn("{}Cannot award premium status: user ID is empty", LOG_PREFIX);
             return;
         }
-        
-        userRepository.findByTelegramId(userId)
-            .ifPresentOrElse(this::awardPremiumStatus, 
-                () -> log.warn("{}User not found: {}", LOG_PREFIX, userId));
+
+        userRepository.findByTelegramId(userId).ifPresentOrElse(this::awardPremiumStatus, () -> log.warn("{}User not " +
+                "found: {}", LOG_PREFIX, userId));
     }
-    
+
     /**
      * Выдает премиум-статус пользователю
      */
@@ -633,20 +621,82 @@ public class MemeService {
             log.info("{}User {} already has premium status", LOG_PREFIX, user.getTelegramId());
             return;
         }
-        
+
         user.setIsPremium(true);
         user.setPremiumSince(LocalDateTime.now());
         userRepository.save(user);
         log.info("{}Awarded premium status to user: {}", LOG_PREFIX, user.getTelegramId());
     }
-    
+
     /**
      * Генерирует случайный ID
      */
     private String generateRandomId() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
+
+    /**
+     * Submit meme to contest
+     *
+     * @param memeUrl URL of the meme to submit
+     * @param userId  ID of the user submitting the meme
+     * @return true if submission was successful, false otherwise
+     */
+    @Transactional
+    public boolean submitMemeToContest(String memeUrl, String userId) {
+        validateParams(memeUrl, userId, "Invalid parameters for contest submission");
+        return contestService.submitMemeToContest(memeUrl, userId);
+    }
+
+    /**
+     * Vote for a meme
+     *
+     * @param memeId ID of the meme to vote for
+     * @return true if vote was successful, false otherwise
+     */
+    @Transactional
+    public boolean voteMeme(Long memeId) {
+        if (memeId == null) {
+            log.warn("{}Cannot vote for meme: meme ID is null", LOG_PREFIX);
+            return false;
+        }
+
+        return memeRepository.findById(memeId).map(meme -> {
+            meme.setLikes(meme.getLikes() + 1);
+            memeRepository.save(meme);
+            log.info("{}Vote added to meme: {}", LOG_PREFIX, memeId);
+            return true;
+        }).orElseGet(() -> {
+            log.warn("{}Meme not found for voting: {}", LOG_PREFIX, memeId);
+            return false;
+        });
+    }
+
+    /**
+     * Get top memes sorted by likes
+     * 
+     * @return List of top memes
+     */
+    public List<Meme> getTopMemes() {
+        log.debug("{}Fetching top memes", LOG_PREFIX);
+        return memeRepository.findTop10ByOrderByLikesDesc();
+    }
     
+    /**
+     * Get memes currently in contest
+     * 
+     * @return List of memes in contest
+     */
+    public List<Meme> getContestMemes() {
+        log.debug("{}Fetching contest memes", LOG_PREFIX);
+        return memeRepository.findByInContestIsTrue();
+    }
+
+    public List<Meme> getMemesByUser(String userId) {
+        log.debug("{}Fetching user memes", LOG_PREFIX);
+        return memeRepository.findByUserId(userId);
+    }
+
     /**
      * Исключение для ошибок генерации мемов
      */

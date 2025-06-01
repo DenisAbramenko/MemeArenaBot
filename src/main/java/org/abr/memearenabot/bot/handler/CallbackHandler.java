@@ -12,37 +12,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Handler for callback queries from inline keyboards
  */
 public class CallbackHandler {
     private static final Logger logger = LoggerFactory.getLogger(CallbackHandler.class);
-    
+
     private final MemeService memeService;
     private final UserService userService;
     private final MessageService messageService;
     private final MessageSender messageSender;
     private final TelegramBot bot;
-    
-    public CallbackHandler(
-            MemeService memeService,
-            UserService userService,
-            MessageService messageService,
-            MessageSender messageSender,
-            TelegramBot bot) {
+
+    public CallbackHandler(MemeService memeService, UserService userService, MessageService messageService,
+                           MessageSender messageSender, TelegramBot bot) {
         this.memeService = memeService;
         this.userService = userService;
         this.messageService = messageService;
         this.messageSender = messageSender;
         this.bot = bot;
     }
-    
+
     /**
      * Handle callback queries
      */
@@ -50,19 +42,19 @@ public class CallbackHandler {
         String callbackData = callbackQuery.getData();
         Long chatId = callbackQuery.getMessage().getChatId();
         Integer messageId = callbackQuery.getMessage().getMessageId();
-        
+
         logger.debug("Handling callback with data: {}", callbackData);
-        
+
         try {
             // Answer callback query to stop loading animation
             AnswerCallbackQuery answer = new AnswerCallbackQuery();
             answer.setCallbackQueryId(callbackQuery.getId());
             bot.execute(answer);
-            
+
             // Parse callback data
             String[] parts = callbackData.split(":");
             String action = parts[0];
-            
+
             switch (action) {
                 case "publish":
                     handlePublishCallback(chatId, parts, session, user);
@@ -99,7 +91,7 @@ public class CallbackHandler {
             }
         }
     }
-    
+
     /**
      * Handle publish callback
      */
@@ -108,17 +100,17 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         String memeUrl = parts[1];
         boolean success = memeService.publishMemeToFeed(memeUrl, user.getTelegramId());
-        
+
         if (success) {
             messageSender.sendLocalizedText(chatId, "meme.publish.success");
         } else {
             messageSender.sendLocalizedText(chatId, "meme.publish.error");
         }
     }
-    
+
     /**
      * Handle contest callback
      */
@@ -127,17 +119,17 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         String memeUrl = parts[1];
         boolean success = memeService.submitMemeToContest(memeUrl, user.getTelegramId());
-        
+
         if (success) {
             messageSender.sendLocalizedText(chatId, "meme.contest.success");
         } else {
             messageSender.sendLocalizedText(chatId, "meme.contest.error");
         }
     }
-    
+
     /**
      * Handle NFT callback
      */
@@ -146,17 +138,17 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         String memeUrl = parts[1];
         String nftUrl = memeService.createNFT(memeUrl, user.getTelegramId());
-        
+
         if (nftUrl != null) {
             messageSender.sendLocalizedText(chatId, "meme.nft.success", nftUrl);
         } else {
             messageSender.sendLocalizedText(chatId, "meme.nft.error");
         }
     }
-    
+
     /**
      * Handle template callback
      */
@@ -165,14 +157,14 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         String templateId = parts[1];
         session.setSelectedTemplate(templateId);
         session.setState(UserState.WAITING_FOR_TEMPLATE_TEXT);
-        
+
         messageSender.sendLocalizedText(chatId, "command.template.text", templateId);
     }
-    
+
     /**
      * Handle vote callback
      */
@@ -181,11 +173,11 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         try {
             Long memeId = Long.parseLong(parts[1]);
             boolean success = memeService.voteMeme(memeId);
-            
+
             if (success) {
                 messageSender.sendText(chatId, "👍 Спасибо за ваш голос!");
             } else {
@@ -196,7 +188,7 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
         }
     }
-    
+
     /**
      * Handle pagination callback
      */
@@ -205,10 +197,10 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         String pageType = parts[1];
         int page;
-        
+
         try {
             page = Integer.parseInt(parts[2]);
         } catch (NumberFormatException e) {
@@ -216,7 +208,7 @@ public class CallbackHandler {
             messageSender.sendLocalizedText(chatId, "common.error");
             return;
         }
-        
+
         // Handle different page types (e.g., contest, templates, user memes)
         switch (pageType) {
             case "contest":
@@ -233,18 +225,18 @@ public class CallbackHandler {
                 break;
         }
     }
-    
+
     /**
      * Handle back/new callback
      */
     private void handleBackCallback(Long chatId, UserSession session) throws TelegramApiException {
         // Reset state
         session.setState(UserState.IDLE);
-        
+
         // Send welcome action message with main menu
         messageSender.sendLocalizedText(chatId, "welcome.action");
     }
-    
+
     /**
      * Show contest page
      */
@@ -252,7 +244,7 @@ public class CallbackHandler {
         // Implementation for showing contest memes with pagination
         // This would fetch contest memes for the specified page and display them
     }
-    
+
     /**
      * Show templates page
      */
@@ -260,7 +252,7 @@ public class CallbackHandler {
         // Implementation for showing templates with pagination
         // This would fetch templates for the specified page and display them
     }
-    
+
     /**
      * Show user memes page
      */

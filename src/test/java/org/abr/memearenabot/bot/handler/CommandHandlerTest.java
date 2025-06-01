@@ -5,6 +5,7 @@ import org.abr.memearenabot.bot.keyboard.KeyboardFactory;
 import org.abr.memearenabot.bot.session.UserSession;
 import org.abr.memearenabot.bot.session.UserState;
 import org.abr.memearenabot.model.User;
+import org.abr.memearenabot.service.ContestService;
 import org.abr.memearenabot.service.MemeService;
 import org.abr.memearenabot.service.MessageService;
 import org.abr.memearenabot.service.UserService;
@@ -45,6 +46,9 @@ public class CommandHandlerTest {
     private KeyboardFactory keyboardFactory;
 
     @Mock
+    private ContestService contestService;
+
+    @Mock
     private Message message;
 
     @Mock
@@ -60,7 +64,7 @@ public class CommandHandlerTest {
 
     @BeforeEach
     public void setUp() {
-        commandHandler = new CommandHandler(bot, memeService, userService, messageService, keyboardFactory);
+        commandHandler = new CommandHandler(bot, memeService, userService, messageService, keyboardFactory, contestService);
         session = new UserSession();
         user = new User(chatId.toString(), "test_user", "Test", "User", "en");
         user.setId(1L);

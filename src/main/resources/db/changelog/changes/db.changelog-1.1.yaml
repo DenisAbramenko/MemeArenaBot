@@ -3,6 +3,11 @@ databaseChangeLog:
       id: 1.1.0
       author: memearenabot
       comment: Добавление таблицы конкурсов мемов
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: contests
       changes:
         # Создание таблицы конкурсов
         - createTable:
@@ -60,6 +65,16 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
+  - changeSet:
+      id: 1.1.1
+      author: memearenabot
+      comment: Добавление таблицы участников конкурса
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: contest_entries
+      changes:
         # Создание таблицы участников конкурса
         - createTable:
             tableName: contest_entries
@@ -107,6 +122,16 @@ databaseChangeLog:
                   name: rank
                   type: INT
 
+  - changeSet:
+      id: 1.1.2
+      author: memearenabot
+      comment: Добавление таблицы голосов
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: contest_votes
+      changes:
         # Создание таблицы голосов
         - createTable:
             tableName: contest_votes
@@ -138,6 +163,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
+  - changeSet:
+      id: 1.1.3
+      author: memearenabot
+      comment: Добавление индексов для таблиц конкурсов
+      changes:
         # Создание индексов
         - createIndex:
             indexName: idx_contest_status

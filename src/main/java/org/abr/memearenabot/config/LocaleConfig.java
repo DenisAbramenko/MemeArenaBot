@@ -14,7 +14,7 @@ import java.util.Locale;
  */
 @Configuration
 public class LocaleConfig {
-    
+
     /**
      * Default locale resolver
      */
@@ -24,7 +24,7 @@ public class LocaleConfig {
         localeResolver.setDefaultLocale(new Locale("ru", "RU"));
         return localeResolver;
     }
-    
+
     /**
      * Message source for i18n
      */

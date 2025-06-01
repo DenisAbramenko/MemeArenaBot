@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class MetricsConfig {
-    
+
     /**
      * Enable @Timed annotation support
      */
@@ -22,7 +22,7 @@ public class MetricsConfig {
     public TimedAspect timedAspect(MeterRegistry registry) {
         return new TimedAspect(registry);
     }
-    
+
     /**
      * JVM GC metrics
      */
@@ -30,7 +30,7 @@ public class MetricsConfig {
     public JvmGcMetrics jvmGcMetrics() {
         return new JvmGcMetrics();
     }
-    
+
     /**
      * JVM memory metrics
      */
@@ -38,7 +38,7 @@ public class MetricsConfig {
     public JvmMemoryMetrics jvmMemoryMetrics() {
         return new JvmMemoryMetrics();
     }
-    
+
     /**
      * JVM thread metrics
      */
@@ -46,7 +46,7 @@ public class MetricsConfig {
     public JvmThreadMetrics jvmThreadMetrics() {
         return new JvmThreadMetrics();
     }
-    
+
     /**
      * Processor metrics
      */

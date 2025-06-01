@@ -1,5 +1,7 @@
 package org.abr.memearenabot.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -12,206 +14,224 @@ import java.util.Locale;
  */
 @Service
 public class MessageService {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageService.class);
+
     private final MessageSource messageSource;
-    
+
     @Autowired
     public MessageService(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
-    
+
     /**
      * Get message by key using default locale
      */
     public String getMessage(String key) {
         return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
-    
+
     /**
      * Get message by key with arguments using default locale
      */
     public String getMessage(String key, Object... args) {
-        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
+        try {
+            logger.debug("Requesting message with key: {}", key);
+            String message = messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
+            logger.debug("Message found for key {}: {}", key, message);
+            return message;
+        } catch (Exception e) {
+            logger.warn("Message not found for key: {}. Error: {}", key, e.getMessage());
+            return "!" + key + "!";
+        }
     }
-    
+
     /**
      * Get message by key using specified locale
      */
     public String getMessage(String key, Locale locale) {
         return messageSource.getMessage(key, null, locale);
     }
-    
+
     /**
      * Get message by key with arguments using specified locale
      */
     public String getMessage(String key, Locale locale, Object... args) {
         return messageSource.getMessage(key, args, locale);
     }
-    
+
     // Welcome messages
     public String getWelcomeMessage() {
         return getMessage("welcome.message");
     }
-    
+
     public String getWelcomeAction() {
         return getMessage("welcome.action");
     }
-    
+
     // Help messages
     public String getHelpMessage() {
         return getMessage("help.message");
     }
-    
+
     // Command messages
     public String getUnknownCommandMessage() {
         return getMessage("command.unknown");
     }
-    
+
     public String getAiPromptMessage() {
         return getMessage("command.ai.prompt");
     }
-    
+
     public String getTemplateChooseMessage() {
         return getMessage("command.template.choose");
     }
-    
+
     public String getTemplateTextMessage(String templateName) {
         return getMessage("command.template.text", templateName);
     }
-    
+
     public String getContestInfoMessage() {
         return getMessage("command.contest.info");
     }
-    
+
     public String getNftInfoMessage() {
         return getMessage("command.nft.info");
     }
-    
+
     // Meme generation messages
     public String getMemeGeneratingMessage() {
         return getMessage("meme.generating");
     }
-    
+
     public String getMemeGeneratingAiMessage() {
         return getMessage("meme.generating.ai");
     }
-    
+
     public String getMemeGeneratingTemplateMessage() {
         return getMessage("meme.generating.template");
     }
-    
+
     public String getMemeGeneratingVoiceMessage() {
         return getMessage("meme.generating.voice");
     }
-    
+
     public String getMemeResultAiMessage() {
         return getMessage("meme.result.ai");
     }
-    
+
     public String getMemeResultTemplateMessage() {
         return getMessage("meme.result.template");
     }
-    
+
     public String getMemeResultVoiceMessage() {
         return getMessage("meme.result.voice");
     }
-    
+
     public String getMemeErrorAiMessage() {
         return getMessage("meme.error.ai");
     }
-    
+
     public String getMemeErrorTemplateMessage() {
         return getMessage("meme.error.template");
     }
-    
+
     public String getMemeErrorVoiceMessage() {
         return getMessage("meme.error.voice");
     }
-    
+
     public String getMemeErrorVoiceDownloadMessage() {
         return getMessage("meme.error.voice.download");
     }
-    
+
     public String getMemeErrorAiDisabledMessage() {
         return getMessage("meme.error.ai.disabled");
     }
-    
+
     public String getMemeErrorVoiceDisabledMessage() {
         return getMessage("meme.error.voice.disabled");
     }
-    
+
     public String getMemeErrorDescriptionLongMessage() {
         return getMessage("meme.error.description.long");
     }
-    
+
     public String getMemeActionsMessage() {
         return getMessage("meme.actions");
     }
-    
+
     // Meme action messages
     public String getMemeActionPublishMessage() {
         return getMessage("meme.action.publish");
     }
-    
+
     public String getMemeActionContestMessage() {
         return getMessage("meme.action.contest");
     }
-    
+
     public String getMemeActionNftMessage() {
         return getMessage("meme.action.nft");
     }
-    
+
     public String getMemeActionNewMessage() {
         return getMessage("meme.action.new");
     }
-    
+
     public String getMemePublishSuccessMessage() {
         return getMessage("meme.publish.success");
     }
-    
+
     public String getMemePublishErrorMessage() {
         return getMessage("meme.publish.error");
     }
-    
+
     public String getMemeContestSuccessMessage() {
         return getMessage("meme.contest.success");
     }
-    
+
     public String getMemeContestErrorMessage() {
         return getMessage("meme.contest.error");
     }
-    
+
     public String getMemeNftSuccessMessage(String nftUrl) {
         return getMessage("meme.nft.success", nftUrl);
     }
-    
+
     public String getMemeNftErrorMessage() {
         return getMessage("meme.nft.error");
     }
-    
+
     // Keyboard button messages
     public String getKeyboardAiMessage() {
         return getMessage("keyboard.ai");
     }
-    
+
     public String getKeyboardTemplateMessage() {
         return getMessage("keyboard.template");
     }
-    
+
     public String getKeyboardVoiceMessage() {
         return getMessage("keyboard.voice");
     }
-    
+
     public String getKeyboardContestMessage() {
         return getMessage("keyboard.contest");
     }
-    
+
     public String getKeyboardMonetizationMessage() {
         return getMessage("keyboard.monetization");
     }
-    
+
     public String getKeyboardHelpMessage() {
         return getMessage("keyboard.help");
+    }
+
+    public String getKeyboardUserLoginMessage() {
+        return getMessage("keyboard.user_login");
+    }
+
+    public String getKeyboardAdminLoginMessage() {
+        return getMessage("keyboard.admin_login");
     }
 
     /**
@@ -268,5 +288,12 @@ public class MessageService {
      */
     public String getAdminBackButtonMessage() {
         return getMessage("admin.button.back");
+    }
+
+    /**
+     * Get localized text message
+     */
+    public String getLocalizedText(String code, Object... args) {
+        return getMessage(code, args);
     }
 } 

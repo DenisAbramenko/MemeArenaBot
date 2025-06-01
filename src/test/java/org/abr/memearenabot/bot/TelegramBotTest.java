@@ -94,16 +94,19 @@ public class TelegramBotTest {
                 memeService,
                 userService,
                 messageService,
-                inputValidator
+                null,
+                memeService,
+                userService,
+                messageService,
+                null,
+                inputValidator,
+                commandHandler,
+                messageHandler,
+                keyboardFactory,
+                inlineKeyboardFactory,
+                messageSender,
+                callbackHandler
         ));
-
-        // Mock dependencies that are created in the constructor
-        setPrivateField(bot, "commandHandler", commandHandler);
-        setPrivateField(bot, "messageHandler", messageHandler);
-        setPrivateField(bot, "callbackHandler", callbackHandler);
-        setPrivateField(bot, "keyboardFactory", keyboardFactory);
-        setPrivateField(bot, "inlineKeyboardFactory", inlineKeyboardFactory);
-        setPrivateField(bot, "messageSender", messageSender);
 
         user = new User(chatId.toString(), "test_user", "Test", "User", "en");
         user.setId(1L);

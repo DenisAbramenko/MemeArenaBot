@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="LOGS" value="./logs" />
+    <property name="LOGS" value="./logs"/>
 
     <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.classic.PatternLayout">
@@ -27,31 +27,31 @@
 
     <!-- LOG at INFO level -->
     <root level="info">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
     </root>
 
     <!-- LOG "org.abr.memearenabot*" at DEBUG level -->
     <logger name="org.abr.memearenabot" level="debug" additivity="false">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
     </logger>
-    
+
     <!-- LOG "org.springframework.web" at INFO level -->
     <logger name="org.springframework.web" level="info" additivity="false">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
     </logger>
-    
+
     <!-- LOG "org.hibernate" at WARN level -->
     <logger name="org.hibernate" level="warn" additivity="false">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
     </logger>
-    
+
     <!-- LOG "org.telegram" at INFO level -->
     <logger name="org.telegram" level="info" additivity="false">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
     </logger>
 </configuration> 

@@ -11,33 +11,27 @@ import java.util.Map;
  */
 public class UserSession {
 
+    private final Map<String, Object> sessionData = new HashMap<>();
     // Current state of the user in the conversation
     private UserState state = UserState.IDLE;
-    
     // Last activity time
     private LocalDateTime lastActivity = LocalDateTime.now();
-    
     // Selected template for meme generation
     private String selectedTemplate;
-    
     // Last generated meme URL
     private String lastMemeUrl;
-    
     // Text lines for template-based meme
     private List<String> templateTextLines = new ArrayList<>();
-    
     // Last command executed
     private String lastCommand;
-    
-    private final Map<String, Object> sessionData = new HashMap<>();
-    
+
     /**
      * Update last activity time
      */
     public void updateActivity() {
         this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
      * Reset session state
      */
@@ -48,7 +42,7 @@ public class UserSession {
         this.lastCommand = null;
         updateActivity();
     }
-    
+
     /**
      * Check if session is expired
      */
@@ -96,12 +90,12 @@ public class UserSession {
         this.templateTextLines = templateTextLines;
         updateActivity();
     }
-    
+
     public void addTemplateTextLine(String line) {
         this.templateTextLines.add(line);
         updateActivity();
     }
-    
+
     public void clearTemplateTextLines() {
         this.templateTextLines.clear();
         updateActivity();

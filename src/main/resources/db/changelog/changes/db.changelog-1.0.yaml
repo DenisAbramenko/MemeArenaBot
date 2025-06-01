@@ -3,6 +3,11 @@ databaseChangeLog:
       id: 1.0.0
       author: memearenabot
       comment: Создание начальной структуры базы данных
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: users
       changes:
         # Создание таблицы пользователей
         - createTable:
@@ -92,6 +97,16 @@ databaseChangeLog:
               - column:
                   name: created_at
 
+  - changeSet:
+      id: 1.0.1
+      author: memearenabot
+      comment: Создание таблицы мемов
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: memes
+      changes:
         # Создание таблицы мемов
         - createTable:
             tableName: memes

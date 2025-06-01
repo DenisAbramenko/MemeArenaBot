@@ -6,6 +6,7 @@ import org.abr.memearenabot.bot.sender.MessageSender;
 import org.abr.memearenabot.bot.session.UserSession;
 import org.abr.memearenabot.bot.session.UserState;
 import org.abr.memearenabot.model.User;
+import org.abr.memearenabot.service.ContestService;
 import org.abr.memearenabot.service.MemeService;
 import org.abr.memearenabot.service.MessageService;
 import org.abr.memearenabot.service.UserService;
@@ -53,6 +54,9 @@ public class MessageHandlerTest {
     private MessageSender messageSender;
 
     @Mock
+    ContestService contestService;
+
+    @Mock
     private InputValidator inputValidator;
 
     @Mock
@@ -72,7 +76,7 @@ public class MessageHandlerTest {
 
     @BeforeEach
     public void setUp() {
-        messageHandler = new MessageHandler(bot, memeService, userService, messageService, keyboardFactory, messageSender, inputValidator);
+        messageHandler = new MessageHandler(bot, memeService, userService, messageService, keyboardFactory, messageSender, inputValidator, contestService);
         session = new UserSession();
         user = new User(chatId.toString(), "test_user", "Test", "User", "en");
         user.setId(1L);

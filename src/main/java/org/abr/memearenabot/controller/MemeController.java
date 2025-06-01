@@ -17,14 +17,14 @@ import java.util.List;
 @RequestMapping("/api/memes")
 public class MemeController {
     private static final Logger logger = LoggerFactory.getLogger(MemeController.class);
-    
+
     private final MemeService memeService;
-    
+
     @Autowired
     public MemeController(MemeService memeService) {
         this.memeService = memeService;
     }
-    
+
     /**
      * Get top memes
      */
@@ -33,7 +33,7 @@ public class MemeController {
         logger.info("REST request to get top memes");
         return ResponseEntity.ok(memeService.getTopMemes());
     }
-    
+
     /**
      * Get contest memes
      */
@@ -42,7 +42,7 @@ public class MemeController {
         logger.info("REST request to get contest memes");
         return ResponseEntity.ok(memeService.getContestMemes());
     }
-    
+
     /**
      * Vote for a meme
      */
@@ -56,7 +56,7 @@ public class MemeController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     /**
      * Get available templates
      */

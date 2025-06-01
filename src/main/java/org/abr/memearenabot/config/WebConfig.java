@@ -13,10 +13,10 @@ import java.nio.file.Paths;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    
+
     @Value("${meme.storage.path:./meme-storage}")
     private String memeStoragePath;
-    
+
     /**
      * Настройка обработчиков ресурсов для доступа к изображениям мемов
      */
@@ -25,9 +25,8 @@ public class WebConfig implements WebMvcConfigurer {
         // Получаем абсолютный путь к директории хранения мемов
         Path memeStorageLocation = Paths.get(memeStoragePath).toAbsolutePath().normalize();
         String memeStorageLocationPath = memeStorageLocation.toString().replace("\\", "/");
-        
+
         // Регистрируем обработчик для доступа к изображениям
-        registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:" + memeStorageLocationPath + "/");
+        registry.addResourceHandler("/images/**").addResourceLocations("file:" + memeStorageLocationPath + "/");
     }
 } 

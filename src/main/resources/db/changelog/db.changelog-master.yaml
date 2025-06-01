@@ -1,7 +1,8 @@
 databaseChangeLog:
-  - preConditions:
-    - runningAs:
-        username: ${spring.datasource.username}
+  # Removing the username precondition that's causing issues
+  # - preConditions:
+  #     - runningAs:
+  #         username: ${spring.datasource.username}
 
   - include:
       file: changes/db.changelog-1.0.yaml

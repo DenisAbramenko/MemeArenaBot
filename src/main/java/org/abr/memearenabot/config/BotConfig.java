@@ -1,7 +1,11 @@
 package org.abr.memearenabot.config;
 
 import org.abr.memearenabot.bot.TelegramBot;
+import org.abr.memearenabot.service.ContestService;
 import org.abr.memearenabot.service.MemeService;
+import org.abr.memearenabot.service.MessageService;
+import org.abr.memearenabot.service.UserService;
+import org.abr.memearenabot.validation.InputValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,14 +24,25 @@ public class BotConfig {
 
     @Value("${telegram.bot.token}")
     private String botToken;
-    
+
     @Value("${telegram.bot.username}")
     private String botUsername;
 
     @Bean
-    public TelegramBot telegramBot(MemeService memeService) {
+    public TelegramBot telegramBot(
+            MemeService memeService, 
+            UserService userService, 
+            MessageService messageService, 
+            ContestService contestService, 
+            InputValidator inputValidator) {
         logger.info("Initializing Telegram bot with username: {}", botUsername);
-        return new TelegramBot(botToken, memeService);
+        return new TelegramBot(
+                memeService,
+                userService,
+                messageService,
+                contestService,
+                inputValidator
+        );
     }
 
     @Bean
@@ -46,7 +61,7 @@ public class BotConfig {
             throw new BotRegistrationException("Failed to register bot with Telegram API", e);
         }
     }
-    
+
     /**
      * Custom exception for bot registration failures
      */

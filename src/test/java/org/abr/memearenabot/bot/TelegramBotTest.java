@@ -158,25 +158,6 @@ public class TelegramBotTest {
     }
 
     @Test
-    public void testOnUpdateReceived_WithVoiceMessage() {
-        // Arrange
-        when(update.hasMessage()).thenReturn(true);
-        when(update.getMessage()).thenReturn(message);
-        when(message.hasText()).thenReturn(false);
-        when(message.hasVoice()).thenReturn(true);
-        when(message.getVoice()).thenReturn(voice);
-        when(userService.getOrCreateUser(message)).thenReturn(user);
-
-        // Act
-        bot.onUpdateReceived(update);
-
-        // Assert
-        verify(userService).getOrCreateUser(message);
-        verify(userService).updateUserActivity(user.getTelegramId());
-        verify(messageHandler).handleVoiceMessage(message, bot.getUserSessions().get(chatId), user);
-    }
-
-    @Test
     public void testOnUpdateReceived_WithCallbackQuery_MessageAccessible() {
         // Arrange
         when(update.hasCallbackQuery()).thenReturn(true);

@@ -2,11 +2,9 @@ package org.abr.memearenabot.config;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.annotation.PostConstruct;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
 
@@ -14,29 +12,24 @@ import java.io.File;
 public class DotenvConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(DotenvConfig.class);
-    
-    @Autowired
-    private Environment springEnvironment;
 
     @PostConstruct
     public void loadEnv() {
         File envFile = new File(".env");
-        
+
         if (envFile.exists()) {
             logger.info("Loading configuration from .env file");
-            
+
             try {
-                Dotenv dotenv = Dotenv.configure()
-                        .ignoreIfMissing()
-                        .load();
-                
+                Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+
                 // Установка переменных окружения из .env
                 dotenv.entries().forEach(entry -> {
                     if (System.getenv(entry.getKey()) == null) {
                         System.setProperty(entry.getKey(), entry.getValue());
                     }
                 });
-                
+
                 logger.info("Environment variables loaded successfully from .env file");
             } catch (Exception e) {
                 logger.error("Failed to load .env file: {}", e.getMessage(), e);

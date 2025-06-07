@@ -121,43 +121,6 @@ public class MessageHandlerTest {
     }
 
     @Test
-    public void testHandleTextMessage_WaitingForTemplateSelection() {
-        // Arrange
-        session.setState(UserState.WAITING_FOR_TEMPLATE_SELECTION);
-        String templateId = "drake";
-        when(memeService.getAvailableTemplates()).thenReturn(Arrays.asList(templateId));
-
-        // Act
-        messageHandler.handleTextMessage(message, templateId, session, user);
-
-        // Assert
-        assertEquals(UserState.WAITING_FOR_TEMPLATE_TEXT, session.getState());
-        assertEquals(templateId, session.getSelectedTemplate());
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("command.template.text"), eq(templateId));
-    }
-
-    @Test
-    public void testHandleTextMessage_WaitingForTemplateText() {
-        // Arrange
-        session.setState(UserState.WAITING_FOR_TEMPLATE_TEXT);
-        session.setSelectedTemplate("drake");
-        String text = "Line 1\nLine 2";
-        when(inputValidator.validateTemplateTextLines(anyList())).thenReturn(InputValidator.ValidationResult.success());
-        when(messageSender.sendLocalizedText(eq(chatId), eq("meme.generating.template"))).thenReturn(message);
-        when(memeService.generateMemeFromTemplate(eq("drake"), anyList(), eq(user)))
-                .thenReturn(CompletableFuture.completedFuture("https://example.com/meme.jpg"));
-        when(keyboardFactory.createMemeActionKeyboard()).thenReturn(actionsKeyboard);
-
-        // Act
-        messageHandler.handleTextMessage(message, text, session, user);
-
-        // Assert
-        verify(inputValidator).validateTemplateTextLines(anyList());
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("meme.generating.template"));
-        verify(memeService).generateMemeFromTemplate(eq("drake"), anyList(), eq(user));
-    }
-
-    @Test
     public void testHandleTextMessage_MemeGenerated_Publish() {
         // Arrange
         session.setState(UserState.MEME_GENERATED);
@@ -192,24 +155,6 @@ public class MessageHandlerTest {
     }
 
     @Test
-    public void testHandleTextMessage_MemeGenerated_NFT() {
-        // Arrange
-        session.setState(UserState.MEME_GENERATED);
-        session.setLastMemeUrl("https://example.com/meme.jpg");
-        when(messageService.getMemeActionNftMessage()).thenReturn("Create NFT");
-        when(memeService.createNFT(eq("https://example.com/meme.jpg"), eq(user.getTelegramId())))
-                .thenReturn("https://example.com/nft/123");
-
-        // Act
-        messageHandler.handleTextMessage(message, "Create NFT", session, user);
-
-        // Assert
-        assertEquals(UserState.IDLE, session.getState());
-        verify(memeService).createNFT(eq("https://example.com/meme.jpg"), eq(user.getTelegramId()));
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("meme.nft.success"), eq("https://example.com/nft/123"));
-    }
-
-    @Test
     public void testHandleTextMessage_MemeGenerated_New() {
         // Arrange
         session.setState(UserState.MEME_GENERATED);
@@ -227,35 +172,6 @@ public class MessageHandlerTest {
     }
 
     @Test
-    public void testHandleVoiceMessage() throws TelegramApiException, IOException {
-        // Arrange
-        when(message.getVoice()).thenReturn(voice);
-        when(messageSender.sendLocalizedText(eq(chatId), eq("meme.generating.voice"))).thenReturn(message);
-
-        // Mock GetFile execution
-        File voiceFile = mock(File.class);
-        when(voice.getFileId()).thenReturn("voice123");
-        when(bot.execute(any(GetFile.class))).thenReturn(voiceFile);
-        when(voiceFile.getFileUrl(anyString())).thenReturn("https://example.com/voice.ogg");
-        
-        // Mock voice data validation
-        byte[] voiceData = "test voice data".getBytes();
-        when(inputValidator.validateVoiceData(any(byte[].class))).thenReturn(InputValidator.ValidationResult.success());
-        
-        // Mock meme generation
-        when(memeService.generateMemeFromVoice(any(byte[].class), eq(user)))
-                .thenReturn(CompletableFuture.completedFuture("https://example.com/meme.jpg"));
-        when(keyboardFactory.createMemeActionKeyboard()).thenReturn(actionsKeyboard);
-
-        // Act
-        messageHandler.handleVoiceMessage(message, session, user);
-
-        // Assert
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("meme.generating.voice"));
-        verify(bot).execute(any(GetFile.class));
-    }
-
-    @Test
     public void testHandleInvalidAiDescription() {
         // Arrange
         session.setState(UserState.WAITING_FOR_AI_DESCRIPTION);
@@ -269,34 +185,5 @@ public class MessageHandlerTest {
         verify(inputValidator).validateAiDescription(text);
         verify(messageSender).sendText(eq(chatId), eq("Description is too long"));
         verify(memeService, never()).generateMeme(anyString(), any(User.class));
-    }
-
-    @Test
-    public void testHandleTemplateSelectionBack() {
-        // Arrange
-        session.setState(UserState.WAITING_FOR_TEMPLATE_SELECTION);
-        when(keyboardFactory.createMainMenuKeyboard()).thenReturn(actionsKeyboard);
-
-        // Act
-        messageHandler.handleTextMessage(message, "↩ Back", session, user);
-
-        // Assert
-        assertEquals(UserState.IDLE, session.getState());
-        verify(keyboardFactory).createMainMenuKeyboard();
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("welcome.action"), eq(actionsKeyboard));
-    }
-
-    @Test
-    public void testHandleTemplateSelectionInvalidTemplate() {
-        // Arrange
-        session.setState(UserState.WAITING_FOR_TEMPLATE_SELECTION);
-        when(memeService.getAvailableTemplates()).thenReturn(Arrays.asList("drake", "button"));
-
-        // Act
-        messageHandler.handleTextMessage(message, "invalid_template", session, user);
-
-        // Assert
-        verify(memeService).getAvailableTemplates();
-        verify(messageSender).sendLocalizedText(eq(chatId), eq("command.template.choose"));
     }
 } 

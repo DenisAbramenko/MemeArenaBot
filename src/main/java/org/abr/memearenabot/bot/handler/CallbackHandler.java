@@ -62,12 +62,6 @@ public class CallbackHandler {
                 case "contest":
                     handleContestCallback(chatId, parts, session, user);
                     break;
-                case "nft":
-                    handleNftCallback(chatId, parts, session, user);
-                    break;
-                case "template":
-                    handleTemplateCallback(chatId, parts, session, user);
-                    break;
                 case "vote":
                     handleVoteCallback(chatId, parts, session, user);
                     break;
@@ -131,41 +125,6 @@ public class CallbackHandler {
     }
 
     /**
-     * Handle NFT callback
-     */
-    private void handleNftCallback(Long chatId, String[] parts, UserSession session, User user) throws TelegramApiException {
-        if (parts.length < 2) {
-            messageSender.sendLocalizedText(chatId, "common.error");
-            return;
-        }
-
-        String memeUrl = parts[1];
-        String nftUrl = memeService.createNFT(memeUrl, user.getTelegramId());
-
-        if (nftUrl != null) {
-            messageSender.sendLocalizedText(chatId, "meme.nft.success", nftUrl);
-        } else {
-            messageSender.sendLocalizedText(chatId, "meme.nft.error");
-        }
-    }
-
-    /**
-     * Handle template callback
-     */
-    private void handleTemplateCallback(Long chatId, String[] parts, UserSession session, User user) throws TelegramApiException {
-        if (parts.length < 2) {
-            messageSender.sendLocalizedText(chatId, "common.error");
-            return;
-        }
-
-        String templateId = parts[1];
-        session.setSelectedTemplate(templateId);
-        session.setState(UserState.WAITING_FOR_TEMPLATE_TEXT);
-
-        messageSender.sendLocalizedText(chatId, "command.template.text", templateId);
-    }
-
-    /**
      * Handle vote callback
      */
     private void handleVoteCallback(Long chatId, String[] parts, UserSession session, User user) throws TelegramApiException {
@@ -214,9 +173,6 @@ public class CallbackHandler {
             case "contest":
                 showContestPage(chatId, page);
                 break;
-            case "templates":
-                showTemplatesPage(chatId, page);
-                break;
             case "memes":
                 showUserMemesPage(chatId, user, page);
                 break;
@@ -243,14 +199,6 @@ public class CallbackHandler {
     private void showContestPage(Long chatId, int page) {
         // Implementation for showing contest memes with pagination
         // This would fetch contest memes for the specified page and display them
-    }
-
-    /**
-     * Show templates page
-     */
-    private void showTemplatesPage(Long chatId, int page) {
-        // Implementation for showing templates with pagination
-        // This would fetch templates for the specified page and display them
     }
 
     /**

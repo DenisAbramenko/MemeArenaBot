@@ -13,14 +13,14 @@ import java.util.List;
  * Entity representing a user in the system
  */
 @Entity
-@Table(name = "users", indexes = {@Index(name = "idx_user_telegram_id", columnList = "telegramId", unique = true),
+@Table(name = "users", indexes = {@Index(name = "idx_user_telegram_id", columnList = "telegram_id", unique = true),
         @Index(name = "idx_user_username", columnList = "username"), @Index(name = "idx_user_created_at", columnList
         = "createdAt")})
 @Data
 @NoArgsConstructor
 @RequiredArgsConstructor
 @ToString(exclude = "memes")
-@EqualsAndHashCode(of = {"id", "telegramId"})
+@EqualsAndHashCode(of = {"id", "telegram_id"})
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class User {
@@ -30,7 +30,7 @@ public class User {
     private Long id;
 
     @NotBlank(message = "Telegram ID cannot be empty")
-    @Column(nullable = false, unique = true)
+    @Column(name = "telegram_id", nullable = false, unique = true)
     @NonNull
     private String telegramId;
 

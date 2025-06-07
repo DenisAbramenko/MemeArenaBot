@@ -230,27 +230,27 @@ public class UserService {
     public boolean verifyAdminPassword(String password) {
         // Get admin password from environment variable (highest priority)
         String configuredPassword = System.getenv("ADMIN_PASSWORD");
-        
+
         // Don't log sensitive values in production
         logger.debug("Checking admin password from environment variables");
-        
+
         if (configuredPassword == null || configuredPassword.isEmpty()) {
             // Fallback to a hardcoded password hash - not ideal but better than plaintext
             // In a production environment, you would use a proper password hashing algorithm
             // This is a simple hash of "adminpass123" 
             final String HARDCODED_PASSWORD_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
-            
+
             // Hash the input password for comparison (using SHA-256)
             String hashedInput = hashPassword(password);
-            
+
             // Compare the hashed values
             return hashedInput.equals(HARDCODED_PASSWORD_HASH);
         }
-        
+
         // Direct comparison for environment variable password
         return password != null && password.equals(configuredPassword);
     }
-    
+
     /**
      * Simple password hashing using SHA-256
      * In a production system, use a more secure approach with salt
@@ -259,7 +259,7 @@ public class UserService {
         try {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            
+
             // Convert to hex string
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {

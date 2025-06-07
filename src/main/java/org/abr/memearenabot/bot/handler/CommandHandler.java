@@ -16,8 +16,6 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.List;
-
 /**
  * Handler for bot commands
  */
@@ -29,24 +27,20 @@ public class CommandHandler {
     private static final String CMD_START = "/start";
     private static final String CMD_HELP = "/help";
     private static final String CMD_AI = "/ai";
-    private static final String CMD_TEMPLATE = "/template";
     private static final String CMD_CONTEST = "/contest";
-    private static final String CMD_NFT = "/nft";
     private static final String CMD_PREMIUM = "/premium";
     private static final String CMD_ADMIN = "/admin";
 
     private final TelegramBot bot;
-    private final MemeService memeService;
     private final UserService userService;
     private final MessageService messageService;
     private final KeyboardFactory keyboardFactory;
     private final ContestService contestService;
 
-    public CommandHandler(TelegramBot bot, MemeService memeService, UserService userService,
+    public CommandHandler(TelegramBot bot, UserService userService,
                           MessageService messageService, KeyboardFactory keyboardFactory,
                           ContestService contestService) {
         this.bot = bot;
-        this.memeService = memeService;
         this.userService = userService;
         this.messageService = messageService;
         this.keyboardFactory = keyboardFactory;
@@ -80,22 +74,16 @@ public class CommandHandler {
         // Handle other commands
         switch (command) {
             case CMD_START:
-                handleStartCommand(chatId, session, user);
+                handleStartCommand(chatId, session);
                 break;
             case CMD_HELP:
-                handleHelpCommand(chatId, session);
+                handleHelpCommand(chatId);
                 break;
             case CMD_AI:
                 handleAiCommand(chatId, session);
                 break;
-            case CMD_TEMPLATE:
-                handleTemplateCommand(chatId, session);
-                break;
             case CMD_CONTEST:
                 handleContestCommand(chatId, session);
-                break;
-            case CMD_NFT:
-                handleNftCommand(chatId, session);
                 break;
             case CMD_PREMIUM:
                 handlePremiumCommand(chatId, session, user);
@@ -140,12 +128,12 @@ public class CommandHandler {
     /**
      * Handle /start command
      */
-    private void handleStartCommand(Long chatId, UserSession session, User user) {
+    private void handleStartCommand(Long chatId, UserSession session) {
         logger.info("{}Handling /start command for chat ID: {}", LOG_PREFIX, chatId);
 
         // Reset session state
         session.reset();
-        
+
         // Set initial login state
         session.setState(UserState.WAITING_FOR_LOGIN);
 
@@ -154,7 +142,7 @@ public class CommandHandler {
             SendMessage welcomeMessage = createMessage(chatId, messageService.getWelcomeMessage(),
                     keyboardFactory.createLoginKeyboard());
             bot.execute(welcomeMessage);
-            
+
             logger.debug("{}Sent welcome message with login options to chat ID: {}", LOG_PREFIX, chatId);
         } catch (TelegramApiException e) {
             logger.error("{}Error sending welcome message to chat ID: {}", LOG_PREFIX, chatId, e);
@@ -164,7 +152,7 @@ public class CommandHandler {
     /**
      * Handle /help command
      */
-    private void handleHelpCommand(Long chatId, UserSession session) {
+    private void handleHelpCommand(Long chatId) {
         logger.info("{}Handling /help command for chat ID: {}", LOG_PREFIX, chatId);
 
         try {
@@ -217,30 +205,6 @@ public class CommandHandler {
     }
 
     /**
-     * Handle /template command
-     */
-    private void handleTemplateCommand(Long chatId, UserSession session) {
-        logger.info("{}Handling /template command for chat ID: {}", LOG_PREFIX, chatId);
-
-        // Set session state
-        session.setState(UserState.WAITING_FOR_TEMPLATE_SELECTION);
-
-        try {
-            // Get available templates
-            List<String> templates = memeService.getAvailableTemplates();
-
-            // Send template selection message with template keyboard
-            SendMessage message = createMessage(chatId, messageService.getTemplateChooseMessage(),
-                    keyboardFactory.createTemplateKeyboard(templates));
-
-            bot.execute(message);
-            logger.debug("{}Sent template selection message to chat ID: {}", LOG_PREFIX, chatId);
-        } catch (TelegramApiException e) {
-            logger.error("{}Error sending template selection message to chat ID: {}", LOG_PREFIX, chatId, e);
-        }
-    }
-
-    /**
      * Handle /contest command
      */
     private void handleContestCommand(Long chatId, UserSession session) {
@@ -259,23 +223,6 @@ public class CommandHandler {
             logger.debug("{}Sent contest info and status messages to chat ID: {}", LOG_PREFIX, chatId);
         } catch (TelegramApiException e) {
             logger.error("{}Error sending contest info message to chat ID: {}", LOG_PREFIX, chatId, e);
-        }
-    }
-
-    /**
-     * Handle /nft command
-     */
-    private void handleNftCommand(Long chatId, UserSession session) {
-        logger.info("{}Handling /nft command for chat ID: {}", LOG_PREFIX, chatId);
-
-        try {
-            // Send NFT info message
-            SendMessage message = createMessage(chatId, messageService.getNftInfoMessage());
-
-            bot.execute(message);
-            logger.debug("{}Sent NFT info message to chat ID: {}", LOG_PREFIX, chatId);
-        } catch (TelegramApiException e) {
-            logger.error("{}Error sending NFT info message to chat ID: {}", LOG_PREFIX, chatId, e);
         }
     }
 

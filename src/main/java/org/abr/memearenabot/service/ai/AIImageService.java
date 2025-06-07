@@ -8,6 +8,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
@@ -34,11 +35,6 @@ public class AIImageService {
     private static final int INITIAL_RETRY_DELAY_MS = 1000;
     private static final double RETRY_MULTIPLIER = 2.0;
 
-    // Параметры для DALL-E API
-    private static final String DALLE_SIZE = "1024x1024";
-    private static final String DALLE_RESPONSE_FORMAT = "url";
-    private static final int DALLE_IMAGE_COUNT = 1;
-
     // Параметры для Stability AI
     private static final int STABILITY_CFG_SCALE = 7;
     private static final int STABILITY_HEIGHT = 1024;
@@ -46,16 +42,8 @@ public class AIImageService {
     private static final int STABILITY_SAMPLES = 1;
     private static final int STABILITY_STEPS = 30;
     private static final double STABILITY_TEXT_WEIGHT = 1.0;
-
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ImageStorageService imageStorageService;
-
-    @Value("${ai.openai.api-key:}")
-    private String openAiApiKey;
-
-    @Value("${ai.openai.dall-e-url:https://api.openai.com/v1/images/generations}")
-    private String openAiDallEUrl;
-
+    private RestTemplate restTemplate;
     @Value("${ai.stability.api-key:}")
     private String stabilityAiApiKey;
 
@@ -66,17 +54,26 @@ public class AIImageService {
     public void init() {
         log.info("{}Initializing AI Image Service", LOG_PREFIX);
 
-        if (isOpenAiConfigured()) {
-            log.info("{}OpenAI DALL-E API configured", LOG_PREFIX);
-        } else {
-            log.warn("{}OpenAI DALL-E API not configured", LOG_PREFIX);
-        }
+        // Настройка RestTemplate
+        setupRestTemplate();
 
         if (isStabilityAiConfigured()) {
             log.info("{}Stability AI API configured", LOG_PREFIX);
         } else {
             log.warn("{}Stability AI API not configured", LOG_PREFIX);
         }
+    }
+
+    /**
+     * Настраивает RestTemplate
+     */
+    private void setupRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(DEFAULT_TIMEOUT_MS);
+        requestFactory.setReadTimeout(DEFAULT_TIMEOUT_MS);
+
+        restTemplate = new RestTemplate(requestFactory);
+        log.info("{}RestTemplate configured", LOG_PREFIX);
     }
 
     /**
@@ -96,54 +93,18 @@ public class AIImageService {
         log.info("{}Generating meme with description: {}", LOG_PREFIX, description);
         String memePrompt = enhanceMemePrompt(description);
 
-        // Пробуем сначала DALL-E, если не получается, то Stability AI
-        if (isOpenAiConfigured()) {
+        if (isStabilityAiConfigured()) {
             try {
-                return generateImageWithDallE(memePrompt);
+                return generateImageWithStabilityAI(memePrompt);
             } catch (AIServiceException e) {
-                log.warn("{}Failed to generate with DALL-E, trying Stability AI: {}", LOG_PREFIX, e.getMessage());
+                log.error("{}Failed to generate with Stability AI: {}", LOG_PREFIX, e.getMessage());
+                return CompletableFuture.completedFuture(getFallbackImageUrl(description));
             }
         }
 
-        if (isStabilityAiConfigured()) {
-            return generateImageWithStabilityAI(memePrompt);
-        }
-
-        // Если оба API не настроены, вернуть заглушку
+        // Если API не настроен, вернуть заглушку
         log.warn("{}No AI image generation API configured, using fallback", LOG_PREFIX);
         return CompletableFuture.completedFuture(getFallbackImageUrl(description));
-    }
-
-    /**
-     * Генерирует изображение с помощью OpenAI DALL-E
-     *
-     * @param prompt Текстовое описание для генерации изображения
-     * @return URL сгенерированного изображения
-     */
-    @Retryable(value = {RestClientException.class}, maxAttempts = MAX_RETRY_ATTEMPTS, backoff = @Backoff(delay =
-            INITIAL_RETRY_DELAY_MS, multiplier = RETRY_MULTIPLIER))
-    private CompletableFuture<String> generateImageWithDallE(String prompt) {
-        log.info("{}Generating image with DALL-E", LOG_PREFIX);
-
-        if (!isOpenAiConfigured()) {
-            throw new AIServiceException("OpenAI API key is not configured");
-        }
-
-        try {
-            HttpHeaders headers = createOpenAiHeaders();
-            Map<String, Object> requestBody = createDallERequestBody(prompt);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-
-            ResponseEntity<Map> response = restTemplate.postForEntity(openAiDallEUrl, request, Map.class);
-
-            return handleDallEResponse(response);
-        } catch (RestClientException e) {
-            log.error("{}RestClient error with DALL-E API: {}", LOG_PREFIX, e.getMessage());
-            throw new AIServiceException("Error communicating with DALL-E API", e);
-        } catch (Exception e) {
-            log.error("{}Unexpected error with DALL-E API", LOG_PREFIX, e);
-            throw new AIServiceException("Unexpected error with DALL-E API: " + e.getMessage(), e);
-        }
     }
 
     /**
@@ -175,58 +136,6 @@ public class AIImageService {
         } catch (Exception e) {
             log.error("{}Unexpected error with Stability API", LOG_PREFIX, e);
             throw new AIServiceException("Unexpected error with Stability AI API: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Создает заголовки для запроса к OpenAI API
-     */
-    private HttpHeaders createOpenAiHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + openAiApiKey);
-        return headers;
-    }
-
-    /**
-     * Создает тело запроса для DALL-E API
-     */
-    private Map<String, Object> createDallERequestBody(String prompt) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("prompt", prompt);
-        requestBody.put("n", DALLE_IMAGE_COUNT);
-        requestBody.put("size", DALLE_SIZE);
-        requestBody.put("response_format", DALLE_RESPONSE_FORMAT);
-        return requestBody;
-    }
-
-    /**
-     * Обрабатывает ответ от DALL-E API
-     */
-    private CompletableFuture<String> handleDallEResponse(ResponseEntity<Map> response) {
-        if (response.getBody() == null) {
-            log.error("{}Empty response from DALL-E API", LOG_PREFIX);
-            throw new AIServiceException("Empty response from DALL-E API");
-        }
-
-        if (!response.getBody().containsKey("data")) {
-            log.error("{}Unexpected DALL-E response format: {}", LOG_PREFIX, response.getBody());
-            throw new AIServiceException("Unexpected DALL-E response format");
-        }
-
-        try {
-            List<Map<String, Object>> data = (List<Map<String, Object>>) response.getBody().get("data");
-            if (data.isEmpty() || !data.get(0).containsKey("url")) {
-                log.error("{}No image URL in DALL-E response: {}", LOG_PREFIX, response.getBody());
-                throw new AIServiceException("No image URL in DALL-E response");
-            }
-
-            String imageUrl = (String) data.get(0).get("url");
-            log.info("{}Successfully generated image with DALL-E", LOG_PREFIX);
-            return CompletableFuture.completedFuture(imageUrl);
-        } catch (ClassCastException e) {
-            log.error("{}Error parsing DALL-E response: {}", LOG_PREFIX, e.getMessage());
-            throw new AIServiceException("Error parsing DALL-E response", e);
         }
     }
 
@@ -294,8 +203,8 @@ public class AIImageService {
      * Улучшает запрос для генерации мема
      */
     private String enhanceMemePrompt(String description) {
-        return "Create a funny meme image with the following description: " + description + ". Make it humorous, with" +
-                " vibrant colors, in a modern meme style.";
+        return "Create a funny meme image based on this idea: " + description + ". If the text is not in English, " +
+                "translate it to English first. Make it humorous, with vibrant colors, in a modern meme style.";
     }
 
     /**
@@ -304,13 +213,6 @@ public class AIImageService {
     private String getFallbackImageUrl(String description) {
         return "https://via.placeholder.com/1024x1024.png?text=" + description.replaceAll("\\s+", "+").substring(0,
                 Math.min(description.length(), 30));
-    }
-
-    /**
-     * Проверяет, настроен ли OpenAI API
-     */
-    private boolean isOpenAiConfigured() {
-        return openAiApiKey != null && !openAiApiKey.trim().isEmpty();
     }
 
     /**

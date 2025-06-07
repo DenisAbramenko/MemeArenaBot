@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: system
+      comment: "Update memes table schema"
+      changes:
+        - sqlFile:
+            path: simple-update-memes.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sql:
+            sql: "-- No rollback needed"
+            
+  - changeSet:
+      id: 2
+      author: system
+      comment: "Update existing memes with NULL inContest value"
+      changes:
+        - sqlFile:
+            path: update-memes-inContest.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sql:
+            sql: "-- No rollback needed" 

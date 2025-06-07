@@ -64,7 +64,7 @@ public class CommandHandlerTest {
 
     @BeforeEach
     public void setUp() {
-        commandHandler = new CommandHandler(bot, memeService, userService, messageService, keyboardFactory, contestService);
+        commandHandler = new CommandHandler(bot, userService, messageService, keyboardFactory, contestService);
         session = new UserSession();
         user = new User(chatId.toString(), "test_user", "Test", "User", "en");
         user.setId(1L);
@@ -89,8 +89,6 @@ public class CommandHandlerTest {
         verify(keyboardFactory).createMainMenuKeyboard();
         verify(bot).execute(any(SendMessage.class));
         assertNull(session.getLastMemeUrl());
-        assertNull(session.getSelectedTemplate());
-        assertTrue(session.getTemplateTextLines().isEmpty());
         assertEquals("/start", session.getLastCommand());
     }
 
@@ -127,27 +125,7 @@ public class CommandHandlerTest {
         assertEquals("/ai", session.getLastCommand());
     }
 
-    @Test
-    public void testHandleTemplateCommand() throws TelegramApiException {
-        // Arrange
-        String templateChooseMessage = "Choose a template";
-        List<String> templates = Arrays.asList("drake", "distracted", "button");
-        
-        when(messageService.getTemplateChooseMessage()).thenReturn(templateChooseMessage);
-        when(memeService.getAvailableTemplates()).thenReturn(templates);
-        when(keyboardFactory.createTemplateKeyboard(templates)).thenReturn(mockKeyboard);
 
-        // Act
-        commandHandler.handleCommand(message, "/template", session, user);
-
-        // Assert
-        assertEquals(UserState.WAITING_FOR_TEMPLATE_SELECTION, session.getState());
-        verify(messageService).getTemplateChooseMessage();
-        verify(memeService).getAvailableTemplates();
-        verify(keyboardFactory).createTemplateKeyboard(templates);
-        verify(bot).execute(any(SendMessage.class));
-        assertEquals("/template", session.getLastCommand());
-    }
 
     @Test
     public void testHandleContestCommand() throws TelegramApiException {
@@ -162,21 +140,6 @@ public class CommandHandlerTest {
         verify(messageService).getContestInfoMessage();
         verify(bot).execute(any(SendMessage.class));
         assertEquals("/contest", session.getLastCommand());
-    }
-
-    @Test
-    public void testHandleNftCommand() throws TelegramApiException {
-        // Arrange
-        String nftInfoMessage = "NFT information";
-        when(messageService.getNftInfoMessage()).thenReturn(nftInfoMessage);
-
-        // Act
-        commandHandler.handleCommand(message, "/nft", session, user);
-
-        // Assert
-        verify(messageService).getNftInfoMessage();
-        verify(bot).execute(any(SendMessage.class));
-        assertEquals("/nft", session.getLastCommand());
     }
 
     @Test

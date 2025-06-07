@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Configuration for caching
@@ -34,9 +35,9 @@ public class CacheConfig {
      */
     @Scheduled(fixedRate = 12 * 60 * 60 * 1000) // 12 hours
     public void clearUserCaches() {
-        cacheManager().getCache("users").clear();
-        cacheManager().getCache("topUsersByMemes").clear();
-        cacheManager().getCache("topUsersByLikes").clear();
+        Objects.requireNonNull(cacheManager().getCache("users")).clear();
+        Objects.requireNonNull(cacheManager().getCache("topUsersByMemes")).clear();
+        Objects.requireNonNull(cacheManager().getCache("topUsersByLikes")).clear();
     }
 
     /**
@@ -44,9 +45,9 @@ public class CacheConfig {
      */
     @Scheduled(fixedRate = 6 * 60 * 60 * 1000) // 6 hours
     public void clearMemeCaches() {
-        cacheManager().getCache("topMemes").clear();
-        cacheManager().getCache("contestMemes").clear();
-        cacheManager().getCache("userMemes").clear();
+        Objects.requireNonNull(cacheManager().getCache("topMemes")).clear();
+        Objects.requireNonNull(cacheManager().getCache("contestMemes")).clear();
+        Objects.requireNonNull(cacheManager().getCache("userMemes")).clear();
     }
 
     /**
@@ -54,6 +55,6 @@ public class CacheConfig {
      */
     @Scheduled(fixedRate = 24 * 60 * 60 * 1000) // 24 hours
     public void clearTemplateCaches() {
-        cacheManager().getCache("memeTemplates").clear();
+        Objects.requireNonNull(cacheManager().getCache("memeTemplates")).clear();
     }
 } 

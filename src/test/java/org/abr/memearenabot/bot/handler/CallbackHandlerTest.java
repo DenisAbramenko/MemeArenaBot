@@ -139,14 +139,11 @@ public class CallbackHandlerTest {
         String nftUrl = "https://example.com/nft/123";
         when(callbackQuery.getData()).thenReturn(callbackData);
         when(callbackQuery.getId()).thenReturn("callback123");
-        when(memeService.createNFT(memeUrl, user.getTelegramId())).thenReturn(nftUrl);
-
         // Act
         callbackHandler.handleCallback(callbackQuery, session, user);
 
         // Assert
         verify(bot).execute(any(AnswerCallbackQuery.class));
-        verify(memeService).createNFT(memeUrl, user.getTelegramId());
         verify(messageSender).sendLocalizedText(chatId, "meme.nft.success", nftUrl);
     }
 
@@ -156,33 +153,12 @@ public class CallbackHandlerTest {
         String callbackData = "nft:" + memeUrl;
         when(callbackQuery.getData()).thenReturn(callbackData);
         when(callbackQuery.getId()).thenReturn("callback123");
-        when(memeService.createNFT(memeUrl, user.getTelegramId())).thenReturn(null);
-
         // Act
         callbackHandler.handleCallback(callbackQuery, session, user);
 
         // Assert
         verify(bot).execute(any(AnswerCallbackQuery.class));
-        verify(memeService).createNFT(memeUrl, user.getTelegramId());
         verify(messageSender).sendLocalizedText(chatId, "meme.nft.error");
-    }
-
-    @Test
-    public void testHandleTemplateCallback() throws TelegramApiException {
-        // Arrange
-        String templateId = "drake";
-        String callbackData = "template:" + templateId;
-        when(callbackQuery.getData()).thenReturn(callbackData);
-        when(callbackQuery.getId()).thenReturn("callback123");
-
-        // Act
-        callbackHandler.handleCallback(callbackQuery, session, user);
-
-        // Assert
-        verify(bot).execute(any(AnswerCallbackQuery.class));
-        assertEquals(UserState.WAITING_FOR_TEMPLATE_TEXT, session.getState());
-        assertEquals(templateId, session.getSelectedTemplate());
-        verify(messageSender).sendLocalizedText(chatId, "command.template.text", templateId);
     }
 
     @Test

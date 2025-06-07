@@ -25,68 +25,38 @@ public class InlineKeyboardFactory {
      * Create inline keyboard for meme actions
      */
     public InlineKeyboardMarkup createMemeActionsKeyboard(String memeUrl) {
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
 
-        // First row
+        // First row: publish and contest buttons
         List<InlineKeyboardButton> row1 = new ArrayList<>();
+        
         InlineKeyboardButton publishButton = new InlineKeyboardButton();
         publishButton.setText(messageService.getMemeActionPublishMessage());
         publishButton.setCallbackData("publish:" + memeUrl);
-
+        
         InlineKeyboardButton contestButton = new InlineKeyboardButton();
         contestButton.setText(messageService.getMemeActionContestMessage());
         contestButton.setCallbackData("contest:" + memeUrl);
-
+        
         row1.add(publishButton);
         row1.add(contestButton);
 
-        // Second row
+        // Second row: new meme button
         List<InlineKeyboardButton> row2 = new ArrayList<>();
-        InlineKeyboardButton nftButton = new InlineKeyboardButton();
-        nftButton.setText(messageService.getMemeActionNftMessage());
-        nftButton.setCallbackData("nft:" + memeUrl);
-
+        
         InlineKeyboardButton newButton = new InlineKeyboardButton();
         newButton.setText(messageService.getMemeActionNewMessage());
         newButton.setCallbackData("new");
-
-        row2.add(nftButton);
+        
         row2.add(newButton);
 
-        rowsInline.add(row1);
-        rowsInline.add(row2);
+        keyboard.add(row1);
+        keyboard.add(row2);
 
-        markupInline.setKeyboard(rowsInline);
-        return markupInline;
-    }
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        inlineKeyboardMarkup.setKeyboard(keyboard);
 
-    /**
-     * Create inline keyboard for template selection
-     */
-    public InlineKeyboardMarkup createTemplateSelectionKeyboard(List<String> templates) {
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-        for (String template : templates) {
-            List<InlineKeyboardButton> row = new ArrayList<>();
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(template);
-            button.setCallbackData("template:" + template);
-            row.add(button);
-            rowsInline.add(row);
-        }
-
-        // Add back button
-        List<InlineKeyboardButton> backRow = new ArrayList<>();
-        InlineKeyboardButton backButton = new InlineKeyboardButton();
-        backButton.setText("↩ Back");
-        backButton.setCallbackData("back");
-        backRow.add(backButton);
-        rowsInline.add(backRow);
-
-        markupInline.setKeyboard(rowsInline);
-        return markupInline;
+        return inlineKeyboardMarkup;
     }
 
     /**

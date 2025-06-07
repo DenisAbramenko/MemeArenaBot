@@ -1,9 +1,9 @@
 package org.abr.memearenabot.bot.session;
 
+import lombok.Getter;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,17 +12,18 @@ import java.util.Map;
 public class UserSession {
 
     private final Map<String, Object> sessionData = new HashMap<>();
+    // Getters and setters
     // Current state of the user in the conversation
+    @Getter
     private UserState state = UserState.IDLE;
     // Last activity time
+    @Getter
     private LocalDateTime lastActivity = LocalDateTime.now();
-    // Selected template for meme generation
-    private String selectedTemplate;
-    // Last generated meme URL
+    // Last meme URL generated for the user
+    @Getter
     private String lastMemeUrl;
-    // Text lines for template-based meme
-    private List<String> templateTextLines = new ArrayList<>();
-    // Last command executed
+    // Last command executed by the user
+    @Getter
     private String lastCommand;
 
     /**
@@ -37,8 +38,6 @@ public class UserSession {
      */
     public void reset() {
         this.state = UserState.IDLE;
-        this.selectedTemplate = null;
-        this.templateTextLines.clear();
         this.lastCommand = null;
         updateActivity();
     }
@@ -50,59 +49,14 @@ public class UserSession {
         return LocalDateTime.now().isAfter(lastActivity.plusMinutes(timeoutMinutes));
     }
 
-    // Getters and setters
-    public UserState getState() {
-        return state;
-    }
-
     public void setState(UserState state) {
         this.state = state;
         updateActivity();
     }
 
-    public LocalDateTime getLastActivity() {
-        return lastActivity;
-    }
-
-    public String getSelectedTemplate() {
-        return selectedTemplate;
-    }
-
-    public void setSelectedTemplate(String selectedTemplate) {
-        this.selectedTemplate = selectedTemplate;
-        updateActivity();
-    }
-
-    public String getLastMemeUrl() {
-        return lastMemeUrl;
-    }
-
     public void setLastMemeUrl(String lastMemeUrl) {
         this.lastMemeUrl = lastMemeUrl;
         updateActivity();
-    }
-
-    public List<String> getTemplateTextLines() {
-        return templateTextLines;
-    }
-
-    public void setTemplateTextLines(List<String> templateTextLines) {
-        this.templateTextLines = templateTextLines;
-        updateActivity();
-    }
-
-    public void addTemplateTextLine(String line) {
-        this.templateTextLines.add(line);
-        updateActivity();
-    }
-
-    public void clearTemplateTextLines() {
-        this.templateTextLines.clear();
-        updateActivity();
-    }
-
-    public String getLastCommand() {
-        return lastCommand;
     }
 
     public void setLastCommand(String lastCommand) {

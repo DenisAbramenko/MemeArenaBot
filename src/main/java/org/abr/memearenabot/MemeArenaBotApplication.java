@@ -14,19 +14,17 @@ public class MemeArenaBotApplication {
     public static void main(String[] args) {
         // Загрузка .env файла перед запуском приложения
         loadEnvFile();
-        
+
         // Запуск приложения Spring Boot
         SpringApplication.run(MemeArenaBotApplication.class, args);
     }
-    
+
     private static void loadEnvFile() {
         File envFile = new File(".env");
-        
+
         if (envFile.exists()) {
-            Dotenv dotenv = Dotenv.configure()
-                    .ignoreIfMissing()
-                    .load();
-            
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+
             // Установка переменных окружения из .env
             dotenv.entries().forEach(entry -> {
                 if (System.getenv(entry.getKey()) == null) {

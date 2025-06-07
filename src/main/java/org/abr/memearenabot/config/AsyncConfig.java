@@ -66,7 +66,7 @@ public class AsyncConfig implements AsyncConfigurer {
             logger.error("Async exception occurred in method: {}", method.getName(), ex);
 
             // Log parameters if needed
-            if (params != null && params.length > 0) {
+            if (params.length > 0) {
                 StringBuilder paramInfo = new StringBuilder();
                 for (int i = 0; i < params.length; i++) {
                     paramInfo.append("Parameter value ").append(i).append(": ");

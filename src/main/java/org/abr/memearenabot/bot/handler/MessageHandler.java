@@ -35,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 public class MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
 
-    private final TelegramBot bot;
     private final MemeService memeService;
     private final UserService userService;
     private final MessageService messageService;
@@ -47,7 +46,6 @@ public class MessageHandler {
     public MessageHandler(TelegramBot bot, MemeService memeService, UserService userService,
                           MessageService messageService, KeyboardFactory keyboardFactory, MessageSender messageSender
             , InputValidator inputValidator, ContestService contestService) {
-        this.bot = bot;
         this.memeService = memeService;
         this.userService = userService;
         this.messageService = messageService;
@@ -89,9 +87,6 @@ public class MessageHandler {
         } else if (state == UserState.ADMIN_USER_DETAIL) {
             handleAdminUserDetailMessage(message, text, session, user);
             return;
-        } else if (state == UserState.ADMIN_TEMPLATE_MANAGEMENT) {
-            handleAdminTemplateManagementMessage(message, text, session, user);
-            return;
         }
 
         // Handle text based on current state
@@ -99,20 +94,14 @@ public class MessageHandler {
             case WAITING_FOR_AI_DESCRIPTION:
                 handleAiDescription(message.getChatId(), text, session, user);
                 break;
-            case WAITING_FOR_TEMPLATE_SELECTION:
-                handleTemplateSelection(message.getChatId(), text, session, user);
-                break;
-            case WAITING_FOR_TEMPLATE_TEXT:
-                handleTemplateText(message.getChatId(), text, session, user);
-                break;
             case MEME_GENERATED:
                 handleMemeAction(message.getChatId(), text, session, user);
                 break;
             case WAITING_FOR_LOGIN:
                 // In WAITING_FOR_LOGIN state, handle login button clicks
-                if (text.equals(messageService.getKeyboardUserLoginMessage())) {
+                if (text.equals(messageService.getMessage("Войти как пользователь"))) {
                     handleUserLogin(message.getChatId(), session, user);
-                } else if (text.equals(messageService.getKeyboardAdminLoginMessage())) {
+                } else if (text.equals(messageService.getMessage("Войти как админ"))) {
                     handleAdminLogin(message.getChatId(), session, user);
                 } else {
                     // Unknown input in login state, prompt for login again
@@ -130,16 +119,6 @@ public class MessageHandler {
                     // Handle AI button click - set state and prompt for description
                     session.setState(UserState.WAITING_FOR_AI_DESCRIPTION);
                     messageSender.sendLocalizedText(message.getChatId(), "command.ai.prompt");
-                } else if (text.equals(messageService.getKeyboardTemplateMessage())) {
-                    // Handle Template button click
-                    session.setState(UserState.WAITING_FOR_TEMPLATE_SELECTION);
-                    List<String> templates = memeService.getAvailableTemplates();
-                    ReplyKeyboardMarkup templateKeyboard = keyboardFactory.createTemplateKeyboard(templates);
-                    messageSender.sendLocalizedText(message.getChatId(), "command.template.choose", templateKeyboard);
-                } else if (text.equals(messageService.getKeyboardVoiceMessage())) {
-                    // Handle Voice button click
-                    ReplyKeyboardMarkup voiceKeyboard = keyboardFactory.createVoiceRequestKeyboard();
-                    messageSender.sendLocalizedText(message.getChatId(), "command.voice.prompt", voiceKeyboard);
                 } else if (text.equals(messageService.getMessage("keyboard.back"))) {
                     // Handle Back button in main menu - stay in main menu
                     ReplyKeyboardMarkup mainMenuKeyboard = keyboardFactory.createMainMenuKeyboard();
@@ -149,9 +128,6 @@ public class MessageHandler {
                     messageSender.sendLocalizedText(message.getChatId(), "command.contest.info");
                     String statusMessage = contestService.getContestStatusMessage();
                     messageSender.sendText(message.getChatId(), statusMessage);
-                } else if (text.equals(messageService.getKeyboardMonetizationMessage())) {
-                    // Handle Monetization button click
-                    messageSender.sendLocalizedText(message.getChatId(), "command.nft.info");
                 } else {
                     // If not a recognized button, treat as AI description
                     handleAiDescription(message.getChatId(), text, session, user);
@@ -161,72 +137,6 @@ public class MessageHandler {
                 // In other states, treat text as AI description
                 handleAiDescription(message.getChatId(), text, session, user);
                 break;
-        }
-    }
-
-    /**
-     * Handle voice messages
-     */
-    public void handleVoiceMessage(Message message, UserSession session, User user) {
-        Long chatId = message.getChatId();
-        Voice voice = message.getVoice();
-        
-        // If a text message with "Back" was received in voice mode, go back to the main menu
-        if (message.hasText() && message.getText().equals(messageService.getMessage("keyboard.back"))) {
-            session.setState(UserState.IDLE);
-            ReplyKeyboardMarkup mainMenuKeyboard = keyboardFactory.createMainMenuKeyboard();
-            messageSender.sendLocalizedText(chatId, "welcome.action", mainMenuKeyboard);
-            return;
-        }
-
-        try {
-            // Send processing message
-            messageSender.sendLocalizedText(chatId, "meme.generating.voice");
-
-            // Download voice file
-            GetFile getFile = new GetFile();
-            getFile.setFileId(voice.getFileId());
-            File voiceFile = bot.execute(getFile);
-            String voiceFileUrl = voiceFile.getFileUrl(bot.getBotToken());
-
-            // Download voice data
-            byte[] voiceData;
-            try (InputStream is = new URL(voiceFileUrl).openStream()) {
-                voiceData = is.readAllBytes();
-            } catch (IOException e) {
-                logger.error("Error downloading voice file", e);
-                messageSender.sendLocalizedText(chatId, "meme.error.voice.download");
-                return;
-            }
-
-            // Validate voice data
-            ValidationResult validationResult = inputValidator.validateVoiceData(voiceData);
-            if (!validationResult.isValid()) {
-                messageSender.sendText(chatId, validationResult.getErrorMessage());
-                return;
-            }
-
-            // Generate meme from voice
-            CompletableFuture<String> memeUrlFuture = memeService.generateMemeFromVoice(voiceData, user);
-
-            memeUrlFuture.thenAccept(memeUrl -> {
-                // Set session state and meme URL
-                session.setState(UserState.MEME_GENERATED);
-                session.setLastMemeUrl(memeUrl);
-
-                // Send meme with actions keyboard
-                ReplyKeyboardMarkup actionsKeyboard = keyboardFactory.createMemeActionKeyboard();
-                messageSender.sendPhotoWithLocalizedCaption(chatId, memeUrl, "meme.result.voice", actionsKeyboard);
-
-                logger.info("Generated voice meme for chat ID: {}", chatId);
-            }).exceptionally(e -> {
-                logger.error("Error generating voice meme", e);
-                messageSender.sendLocalizedText(chatId, "meme.error.voice");
-                return null;
-            });
-        } catch (TelegramApiException e) {
-            logger.error("Error handling voice message", e);
-            messageSender.sendLocalizedText(chatId, "meme.error.voice");
         }
     }
 
@@ -276,83 +186,6 @@ public class MessageHandler {
     }
 
     /**
-     * Handle template selection
-     */
-    private void handleTemplateSelection(Long chatId, String text, UserSession session, User user) {
-        // Check if user wants to go back
-        if (text.equals(messageService.getMessage("keyboard.back"))) {
-            session.setState(UserState.IDLE);
-            ReplyKeyboardMarkup mainMenuKeyboard = keyboardFactory.createMainMenuKeyboard();
-            messageSender.sendLocalizedText(chatId, "welcome.action", mainMenuKeyboard);
-            return;
-        }
-
-        // Проверка лимита для обычных пользователей
-        if (memeService.hasReachedTemplateLimit(user)) {
-            messageSender.sendLocalizedText(chatId, "meme.error.template.limit");
-            return;
-        }
-
-        // Check if template exists
-        List<String> templates = memeService.getAvailableTemplates();
-        if (!templates.contains(text)) {
-            messageSender.sendLocalizedText(chatId, "command.template.choose");
-            return;
-        }
-
-        // Set template and update state
-        session.setSelectedTemplate(text);
-        session.setState(UserState.WAITING_FOR_TEMPLATE_TEXT);
-        session.clearTemplateTextLines();
-
-        // Send template text prompt
-        messageSender.sendLocalizedText(chatId, "command.template.text", text);
-    }
-
-    /**
-     * Handle template text
-     */
-    private void handleTemplateText(Long chatId, String text, UserSession session, User user) {
-        // Split text into lines
-        List<String> lines = Arrays.asList(text.split("\\n"));
-
-        // Validate input
-        ValidationResult validationResult = inputValidator.validateTemplateTextLines(lines);
-        if (!validationResult.isValid()) {
-            messageSender.sendText(chatId, validationResult.getErrorMessage());
-            return;
-        }
-
-        // Send processing message
-        messageSender.sendLocalizedText(chatId, "meme.generating.template");
-
-        try {
-            // Generate meme from template
-            CompletableFuture<String> memeUrlFuture =
-                    memeService.generateMemeFromTemplate(session.getSelectedTemplate(), lines, user);
-
-            memeUrlFuture.thenAccept(memeUrl -> {
-                // Set session state and meme URL
-                session.setState(UserState.MEME_GENERATED);
-                session.setLastMemeUrl(memeUrl);
-
-                // Send meme with actions keyboard
-                ReplyKeyboardMarkup actionsKeyboard = keyboardFactory.createMemeActionKeyboard();
-                messageSender.sendPhotoWithLocalizedCaption(chatId, memeUrl, "meme.result.template", actionsKeyboard);
-
-                logger.info("Generated template meme for chat ID: {}", chatId);
-            }).exceptionally(e -> {
-                logger.error("Error generating template meme", e);
-                messageSender.sendLocalizedText(chatId, "meme.error.template");
-                return null;
-            });
-        } catch (Exception e) {
-            logger.error("Error generating template meme", e);
-            messageSender.sendLocalizedText(chatId, "meme.error.template");
-        }
-    }
-
-    /**
      * Handle meme action
      */
     private void handleMemeAction(Long chatId, String text, UserSession session, User user) {
@@ -369,8 +202,6 @@ public class MessageHandler {
             handlePublishAction(chatId, memeUrl, session, user);
         } else if (text.equals(messageService.getMemeActionContestMessage())) {
             handleContestAction(chatId, memeUrl, session, user);
-        } else if (text.equals(messageService.getMemeActionNftMessage())) {
-            handleNftAction(chatId, memeUrl, session, user);
         } else if (text.equals(messageService.getMemeActionNewMessage())) {
             handleNewMemeAction(chatId, session);
         } else {
@@ -416,22 +247,6 @@ public class MessageHandler {
     }
 
     /**
-     * Handle NFT action
-     */
-    private void handleNftAction(Long chatId, String memeUrl, UserSession session, User user) {
-        String nftUrl = memeService.createNFT(memeUrl, user.getTelegramId());
-
-        if (nftUrl != null) {
-            messageSender.sendLocalizedText(chatId, "meme.nft.success", nftUrl);
-        } else {
-            messageSender.sendLocalizedText(chatId, "meme.nft.error");
-        }
-
-        // Reset state
-        session.setState(UserState.IDLE);
-    }
-
-    /**
      * Handle new meme action
      */
     private void handleNewMemeAction(Long chatId, UserSession session) {
@@ -469,10 +284,7 @@ public class MessageHandler {
             messageSender.sendLocalizedText(chatId, "admin.broadcast.prompt");
         } else if (text.equals(messageService.getAdminMaintenanceButtonMessage())) {
             boolean aiStatus = memeService.isAiEnabled();
-            boolean voiceStatus = memeService.isVoiceEnabled();
-
-            String statusMessage = messageService.getMessage("admin.maintenance.status", aiStatus ? "✅" : "❌",
-                    voiceStatus ? "✅" : "❌");
+            String statusMessage = messageService.getMessage("admin.maintenance.status", aiStatus ? "✅" : "❌");
             messageSender.sendText(chatId, statusMessage);
         } else if (text.equals(messageService.getMessage("admin.contest.end"))) {
             // Завершение конкурса администратором
@@ -521,8 +333,8 @@ public class MessageHandler {
             messageSender.sendText(chatId, userList.toString());
         } else if (text.equals(messageService.getMessage("admin.users.inactive"))) {
             List<User> inactiveUsers = userService.getInactiveUsers(30);
-            StringBuilder userList = new StringBuilder(messageService.getMessage("admin.users.inactive.title") + "\n" +
-                    "\n");
+            StringBuilder userList =
+                    new StringBuilder(messageService.getMessage("admin.users.inactive.title") + "\n" + "\n");
 
             if (inactiveUsers.isEmpty()) {
                 userList.append(messageService.getMessage("admin.users.inactive.empty"));
@@ -553,25 +365,6 @@ public class MessageHandler {
 
             String statusMessage = messageService.getMessage("admin.settings.ai.toggled", !currentStatus ? "✅" : "❌");
             messageSender.sendText(chatId, statusMessage);
-        } else if (text.equals(messageService.getMessage("admin.settings.voice"))) {
-            boolean currentStatus = memeService.isVoiceEnabled();
-            memeService.setVoiceEnabled(!currentStatus);
-
-            String statusMessage = messageService.getMessage("admin.settings.voice.toggled", !currentStatus ? "✅" :
-                    "❌");
-            messageSender.sendText(chatId, statusMessage);
-        } else if (text.equals(messageService.getMessage("admin.settings.templates"))) {
-            session.setState(UserState.ADMIN_TEMPLATE_MANAGEMENT);
-
-            List<String> templates = memeService.getAvailableTemplates();
-            StringBuilder templateList = new StringBuilder(messageService.getMessage("admin.templates.list") + "\n\n");
-
-            for (int i = 0; i < templates.size(); i++) {
-                templateList.append(i + 1).append(". ").append(templates.get(i)).append("\n");
-            }
-
-            templateList.append("\n").append(messageService.getMessage("admin.templates.add.prompt"));
-            messageSender.sendText(chatId, templateList.toString());
         } else if (text.equals(messageService.getAdminBackButtonMessage())) {
             session.setState(UserState.ADMIN_MENU);
             messageSender.sendLocalizedText(chatId, "admin.menu.title", keyboardFactory.createAdminMenuKeyboard());
@@ -725,58 +518,22 @@ public class MessageHandler {
         }
     }
 
-    // Обработка сообщений в управлении шаблонами
-    private void handleAdminTemplateManagementMessage(Message message, String text, UserSession session, User user) {
-        Long chatId = message.getChatId();
-
-        if (text.equals(messageService.getAdminBackButtonMessage())) {
-            session.setState(UserState.ADMIN_SETTINGS_MENU);
-            messageSender.sendLocalizedText(chatId, "admin.settings.title", keyboardFactory.createSettingsKeyboard());
-        } else if (text.startsWith("add:")) {
-            // Добавление нового шаблона
-            String templateName = text.substring(4).trim();
-            if (!templateName.isEmpty()) {
-                memeService.addTemplate(templateName);
-                messageSender.sendLocalizedText(chatId, "admin.templates.added", templateName);
-            }
-        } else if (text.startsWith("remove:")) {
-            // Удаление шаблона
-            String templateName = text.substring(7).trim();
-            if (!templateName.isEmpty()) {
-                boolean removed = memeService.removeTemplate(templateName);
-                if (removed) {
-                    messageSender.sendLocalizedText(chatId, "admin.templates.removed", templateName);
-                } else {
-                    messageSender.sendLocalizedText(chatId, "admin.templates.notFound", templateName);
-                }
-            }
-        } else {
-            // Предполагаем, что это имя нового шаблона
-            memeService.addTemplate(text);
-            messageSender.sendLocalizedText(chatId, "admin.templates.added", text);
-        }
-    }
-
     /**
      * Handle Help button click
      */
     private void handleHelpButtonClick(Long chatId, UserSession session) {
         logger.info("Handling Help button click for chat ID: {}", chatId);
-        
+
         try {
             // Build help message similar to CommandHandler.buildHelpMessage()
-            StringBuilder helpText = new StringBuilder(messageService.getHelpMessage());
-            
+
             // Add information about limits and premium
-            helpText.append("\n\n");
-            helpText.append(messageService.getMessage("help.limits"));
-            helpText.append("\n\n");
-            helpText.append(messageService.getMessage("help.premium"));
-            
+            String helpText = messageService.getHelpMessage() + "\n\n" + messageService.getMessage("help.limits") + "\n\n" + messageService.getMessage("help.premium");
+
             // Send help message with main menu keyboard
             ReplyKeyboardMarkup mainMenuKeyboard = keyboardFactory.createMainMenuKeyboard();
-            messageSender.sendText(chatId, helpText.toString(), mainMenuKeyboard);
-            
+            messageSender.sendText(chatId, helpText, mainMenuKeyboard);
+
             logger.debug("Sent help message to chat ID: {}", chatId);
         } catch (Exception e) {
             logger.error("Error sending help message to chat ID: {}", chatId, e);
@@ -786,25 +543,25 @@ public class MessageHandler {
 
     private void handleUserLogin(Long chatId, UserSession session, User user) {
         logger.info("User login selected for user with ID: {}", user.getTelegramId());
-        
+
         // Mark user as logged in
         session.setState(UserState.IDLE);
-        
+
         // Send welcome message for regular user with main menu keyboard
-        String welcomeMessage = "👤 Вы вошли как обычный пользователь.\n\n" +
-                "Вы можете создавать мемы, участвовать в конкурсах и монетизировать свой контент.";
-        
+        String welcomeMessage = "👤 Вы вошли как обычный пользователь.\n\n" + "Вы можете создавать мемы и участвовать " +
+                "в конкурсах";
+
         messageSender.sendText(chatId, welcomeMessage, keyboardFactory.createMainMenuKeyboard());
     }
 
     private void handleAdminLogin(Long chatId, UserSession session, User user) {
         logger.info("Admin login attempted for user with ID: {}", user.getTelegramId());
-        
+
         // Check if user already has admin rights in database
         if (userService.isAdmin(user.getTelegramId())) {
             // Set admin state
             session.setState(UserState.ADMIN_MENU);
-            
+
             // Send admin welcome message with admin keyboard
             messageSender.sendLocalizedText(chatId, "admin.welcome", keyboardFactory.createAdminMenuKeyboard());
         } else {
@@ -813,7 +570,7 @@ public class MessageHandler {
             messageSender.sendText(chatId, "Введите пароль администратора:");
         }
     }
-    
+
     /**
      * Checks the admin password and grants admin access if correct
      */
@@ -821,17 +578,17 @@ public class MessageHandler {
         try {
             // Don't log sensitive data
             logger.info("Admin password verification attempt for user ID: {}", user.getTelegramId());
-            
+
             // Try service method first
             boolean isValid = userService.verifyAdminPassword(password);
-            
+
             if (isValid) {
                 // Set user as admin in database
                 userService.setAdminStatus(user.getTelegramId(), true);
-                
+
                 // Set admin state
                 session.setState(UserState.ADMIN_MENU);
-                
+
                 // Send admin welcome message with admin keyboard
                 messageSender.sendLocalizedText(chatId, "admin.welcome", keyboardFactory.createAdminMenuKeyboard());
                 logger.info("Admin access granted for user ID: {}", user.getTelegramId());
@@ -847,20 +604,5 @@ public class MessageHandler {
             session.setState(UserState.WAITING_FOR_LOGIN);
             messageSender.sendLocalizedText(chatId, "admin.access.denied", keyboardFactory.createLoginKeyboard());
         }
-    }
-    
-    /**
-     * Checks if the user has admin credentials
-     */
-    private boolean checkAdminCredentials(User user) {
-        // First check if user is already marked as admin in the database
-        if (userService.isAdmin(user.getTelegramId())) {
-            return true;
-        }
-        
-        // TODO: Implement proper admin authentication here
-        // For now, we're just using the database flag
-        
-        return false;
     }
 } 

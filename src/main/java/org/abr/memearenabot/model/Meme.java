@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -13,14 +15,14 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "memes", indexes = {@Index(name = "idx_meme_user_id", columnList = "userId"), @Index(name =
-        "idx_meme_in_contest", columnList = "inContest"), @Index(name = "idx_meme_created_at", columnList =
+        "idx_meme_in_contest", columnList = "in_contest"), @Index(name = "idx_meme_created_at", columnList =
         "createdAt")})
 @Data
-@NoArgsConstructor
 @ToString(exclude = "user")
 @EqualsAndHashCode(of = "id")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(AuditingEntityListener.class)
 public class Meme {
 
     @Id
@@ -36,16 +38,16 @@ public class Meme {
     @Column(length = 1000)
     private String description;
 
-    @Column(nullable = false)
-    @NonNull
+    @Column(name = "user_id", nullable = false)
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_entity_id")
+    @JoinColumn(name = "user_id", referencedColumnName = "telegram_id", insertable = false, updatable = false)
     private User user;
 
     @NotNull(message = "Creation date cannot be null")
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @NotNull(message = "Meme type cannot be null")
@@ -53,39 +55,43 @@ public class Meme {
     @Column(nullable = false)
     private MemeType type;
 
-    @Column
-    private String templateId;
-
     @Column(nullable = false)
     @Builder.Default
     private Integer likes = 0;
 
-    @Column
-    private String nftUrl;
-
-    @Column(nullable = false)
+    @Column(name = "in_contest", nullable = false)
     @Builder.Default
-    private Boolean inContest = false;
+    private boolean inContest = false;
 
+    @Column(name = "published_to_feed", nullable = false)
     @Builder.Default
     private boolean publishedToFeed = false;
 
+    @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
-    private LocalDateTime nftCreatedAt;
+    /**
+     * Default constructor
+     */
+    public Meme() {
+    }
 
     /**
-     * Constructor for AI-generated memes
+     * Constructor with basic info
      */
     public Meme(@NonNull String imageUrl, String description, @NonNull String userId) {
         this.imageUrl = imageUrl;
         this.description = description;
         this.userId = userId;
         this.type = MemeType.AI_GENERATED;
+        this.inContest = false;
+        this.likes = 0;
+        this.publishedToFeed = false;
+        this.createdAt = LocalDateTime.now();
     }
 
     /**
-     * Constructor for AI-generated memes with User entity
+     * Constructor with User entity
      */
     public Meme(@NonNull String imageUrl, String description, @NonNull User user) {
         this.imageUrl = imageUrl;
@@ -93,27 +99,10 @@ public class Meme {
         this.user = user;
         this.userId = user.getTelegramId();
         this.type = MemeType.AI_GENERATED;
-    }
-
-    /**
-     * Constructor for template-based memes
-     */
-    public Meme(@NonNull String imageUrl, @NonNull String templateId, @NonNull String userId, boolean isTemplate) {
-        this.imageUrl = imageUrl;
-        this.templateId = templateId;
-        this.userId = userId;
-        this.type = MemeType.TEMPLATE_BASED;
-    }
-
-    /**
-     * Constructor for template-based memes with User entity
-     */
-    public Meme(@NonNull String imageUrl, @NonNull String templateId, @NonNull User user, boolean isTemplate) {
-        this.imageUrl = imageUrl;
-        this.templateId = templateId;
-        this.user = user;
-        this.userId = user.getTelegramId();
-        this.type = MemeType.TEMPLATE_BASED;
+        this.inContest = false;
+        this.likes = 0;
+        this.publishedToFeed = false;
+        this.createdAt = LocalDateTime.now();
     }
 
     /**
@@ -124,6 +113,9 @@ public class Meme {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+
+        // Явная установка значения для likes, даже если оно уже установлено
+        likes = (likes != null) ? likes : 0;
     }
 
     /**
@@ -140,6 +132,6 @@ public class Meme {
      * Types of memes in the system
      */
     public enum MemeType {
-        AI_GENERATED, TEMPLATE_BASED, VOICE_GENERATED
+        AI_GENERATED
     }
 } 

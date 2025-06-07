@@ -1,5 +1,7 @@
 package org.abr.memearenabot.bot;
 
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import org.abr.memearenabot.bot.handler.CallbackHandler;
 import org.abr.memearenabot.bot.handler.CommandHandler;
 import org.abr.memearenabot.bot.handler.MessageHandler;
@@ -18,35 +20,39 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.MaybeInaccessibleMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Component
 public class TelegramBot extends TelegramLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(TelegramBot.class);
-
-    private MemeService memeService;
-    private UserService userService;
-    private MessageService messageService;
-    private ContestService contestService;
-    private InputValidator inputValidator;
+    // Getters for session management
+    // User session states
+    @Getter
+    private final Map<Long, UserSession> userSessions = new ConcurrentHashMap<>();
+    @Getter
+    private final MemeService memeService;
+    @Getter
+    private final UserService userService;
+    @Getter
+    private final MessageService messageService;
+    private final ContestService contestService;
+    @Getter
+    private final InputValidator inputValidator;
     private CommandHandler commandHandler;
     private MessageHandler messageHandler;
     private KeyboardFactory keyboardFactory;
     private InlineKeyboardFactory inlineKeyboardFactory;
     private MessageSender messageSender;
     private CallbackHandler callbackHandler;
-
-    // User session states
-    private final Map<Long, UserSession> userSessions = new ConcurrentHashMap<>();
-
     @Value("${telegram.bot.username}")
     private String botUsername;
 
@@ -54,12 +60,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String botToken;
 
     @Autowired
-    public TelegramBot(
-            @Lazy MemeService memeService,
-            @Lazy UserService userService,
-            @Lazy MessageService messageService,
-            @Lazy ContestService contestService,
-            @Lazy InputValidator inputValidator) {
+    public TelegramBot(@Lazy MemeService memeService, @Lazy UserService userService,
+                       @Lazy MessageService messageService, @Lazy ContestService contestService,
+                       @Lazy InputValidator inputValidator) {
         // Default constructor that will be called by Spring
         // The token will be injected later, but we need to provide it to the parent constructor
         super("");
@@ -71,39 +74,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         logger.info("TelegramBot constructor called with dependencies");
     }
 
-    @PostConstruct
-    public void init() {
-        // Initialize handlers and factories after all dependencies are injected
-        this.messageSender = new MessageSender(this, messageService);
-        this.keyboardFactory = new KeyboardFactory(this, messageService);
-        this.inlineKeyboardFactory = new InlineKeyboardFactory(this, messageService);
-        this.commandHandler = new CommandHandler(this, memeService, userService, messageService, keyboardFactory,
-                contestService);
-        this.messageHandler = new MessageHandler(this, memeService, userService, messageService, keyboardFactory,
-                messageSender, inputValidator, contestService);
-        this.callbackHandler = new CallbackHandler(memeService, userService, messageService, messageSender, this);
-        
-        // Re-initialize the parent's token field
-        if (botToken != null && !botToken.isEmpty()) {
-            try {
-                java.lang.reflect.Field tokenField = TelegramLongPollingBot.class.getDeclaredField("token");
-                tokenField.setAccessible(true);
-                tokenField.set(this, botToken);
-                logger.info("TelegramBot initialized with token: {}", botToken.substring(0, Math.min(botToken.length(), 5)) + "...");
-            } catch (Exception e) {
-                logger.error("Failed to set bot token", e);
-            }
-        }
-        
-        logger.info("TelegramBot fully initialized with all dependencies");
-    }
-
     // Constructor for tests
-    public TelegramBot(String testToken, MemeService memeService, UserService userService, MessageService messageService, 
-                      InputValidator inputValidator, MemeService memeService1, UserService userService1, 
-                      MessageService messageService1, ContestService contestService, InputValidator inputValidator1, 
-                      CommandHandler commandHandler, MessageHandler messageHandler, KeyboardFactory keyboardFactory, 
-                      InlineKeyboardFactory inlineKeyboardFactory, MessageSender messageSender, CallbackHandler callbackHandler) {
+    public TelegramBot(String testToken, MemeService memeService, UserService userService,
+                       MessageService messageService, InputValidator inputValidator, MemeService memeService1,
+                       UserService userService1, MessageService messageService1, ContestService contestService,
+                       InputValidator inputValidator1, CommandHandler commandHandler, MessageHandler messageHandler,
+                       KeyboardFactory keyboardFactory, InlineKeyboardFactory inlineKeyboardFactory,
+                       MessageSender messageSender, CallbackHandler callbackHandler) {
         super(testToken);
         this.memeService = memeService1;
         this.userService = userService1;
@@ -116,6 +93,29 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.inlineKeyboardFactory = inlineKeyboardFactory;
         this.messageSender = messageSender;
         this.callbackHandler = callbackHandler;
+    }
+
+    @PostConstruct
+    public void init() {
+        // Initialize handlers and factories after all dependencies are injected
+        this.messageSender = new MessageSender(this, messageService);
+        this.keyboardFactory = new KeyboardFactory(this, messageService);
+        this.inlineKeyboardFactory = new InlineKeyboardFactory(this, messageService);
+        this.commandHandler = new CommandHandler(this, userService, messageService, keyboardFactory,
+                contestService);
+        this.messageHandler = new MessageHandler(this, memeService, userService, messageService, keyboardFactory,
+                messageSender, inputValidator, contestService);
+        this.callbackHandler = new CallbackHandler(memeService, userService, messageService, messageSender, this);
+
+        // Проверка токена
+        if (botToken != null && !botToken.isEmpty()) {
+            logger.info("TelegramBot initialized with token: {}", botToken.substring(0, Math.min(botToken.length(),
+                    5)) + "...");
+        } else {
+            logger.warn("Bot token is empty or null");
+        }
+
+        logger.info("TelegramBot fully initialized with all dependencies");
     }
 
     @Override
@@ -192,13 +192,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 UserSession session = userSessions.get(chatId);
 
-                // Handle voice messages
-                if (message.hasVoice()) {
-                    logger.info("Processing voice message from chat ID: {}", chatId);
-                    messageHandler.handleVoiceMessage(message, session, user);
-                    return;
-                }
-
                 // Handle text messages
                 if (message.hasText()) {
                     String text = message.getText();
@@ -220,24 +213,4 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    // Getters for session management
-    public Map<Long, UserSession> getUserSessions() {
-        return userSessions;
-    }
-
-    public MemeService getMemeService() {
-        return memeService;
-    }
-
-    public UserService getUserService() {
-        return userService;
-    }
-
-    public MessageService getMessageService() {
-        return messageService;
-    }
-
-    public InputValidator getInputValidator() {
-        return inputValidator;
-    }
 }

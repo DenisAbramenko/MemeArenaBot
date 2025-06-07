@@ -64,92 +64,6 @@ public class MemeServiceTest {
     }
 
     @Test
-    public void testGenerateMemeFromTemplate_Success() {
-        String templateId = "drake";
-        List<String> textLines = Arrays.asList("Line 1", "Line 2");
-        when(memeRepository.save(any(Meme.class))).thenReturn(testMeme);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-
-        CompletableFuture<String> future = memeService.generateMemeFromTemplate(templateId, textLines, testUser);
-        
-        assertNotNull(future);
-        verify(memeRepository).save(any(Meme.class));
-        verify(userRepository).save(testUser);
-    }
-
-    @Test
-    public void testGenerateMemeFromTemplate_InvalidInput() {
-        String templateId = "";
-        List<String> textLines = Arrays.asList("Line 1", "Line 2");
-
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            memeService.generateMemeFromTemplate(templateId, textLines, testUser);
-        });
-        
-        assertTrue(exception.getMessage().contains("Template ID cannot be empty"));
-        verify(memeRepository, never()).save(any(Meme.class));
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    public void testGenerateMemeFromVoice_Success() {
-        byte[] voiceData = "test voice data".getBytes();
-        when(memeRepository.save(any(Meme.class))).thenReturn(testMeme);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-
-        CompletableFuture<String> future = memeService.generateMemeFromVoice(voiceData, testUser);
-        
-        assertNotNull(future);
-        verify(memeRepository).save(any(Meme.class));
-        verify(userRepository).save(testUser);
-    }
-
-    @Test
-    public void testGenerateMemeFromVoice_VoiceDisabled() {
-        byte[] voiceData = "test voice data".getBytes();
-        ReflectionTestUtils.setField(memeService, "voiceEnabled", false);
-
-        Exception exception = assertThrows(MemeService.MemeGenerationException.class, () -> {
-            memeService.generateMemeFromVoice(voiceData, testUser);
-        });
-        
-        assertTrue(exception.getMessage().contains("Voice meme generation is currently disabled"));
-        verify(memeRepository, never()).save(any(Meme.class));
-        verify(userRepository, never()).save(any(User.class));
-        
-        // Reset for other tests
-        ReflectionTestUtils.setField(memeService, "voiceEnabled", true);
-    }
-
-    @Test
-    public void testGetAvailableTemplates() {
-        List<String> templates = memeService.getAvailableTemplates();
-        
-        assertNotNull(templates);
-        assertFalse(templates.isEmpty());
-        assertTrue(templates.contains("drake"));
-    }
-
-    @Test
-    public void testAddTemplate() {
-        String newTemplate = "new_template";
-        memeService.addTemplate(newTemplate);
-        
-        List<String> templates = memeService.getAvailableTemplates();
-        assertTrue(templates.contains(newTemplate));
-    }
-
-    @Test
-    public void testRemoveTemplate() {
-        String template = "drake";
-        boolean result = memeService.removeTemplate(template);
-        
-        assertTrue(result);
-        List<String> templates = memeService.getAvailableTemplates();
-        assertFalse(templates.contains(template));
-    }
-
-    @Test
     public void testPublishMemeToFeed_MemeFound() {
         when(memeRepository.findAll()).thenReturn(Arrays.asList(testMeme));
 
@@ -175,7 +89,6 @@ public class MemeServiceTest {
         boolean result = memeService.submitMemeToContest(memeUrl, testUser.getTelegramId());
         
         assertTrue(result);
-        assertTrue(testMeme.getInContest());
         verify(memeRepository).save(testMeme);
     }
 

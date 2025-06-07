@@ -1,5 +1,6 @@
 package org.abr.memearenabot.bot.sender;
 
+import lombok.Getter;
 import org.abr.memearenabot.bot.TelegramBot;
 import org.abr.memearenabot.service.MessageService;
 import org.slf4j.Logger;
@@ -19,19 +20,17 @@ import java.io.InputStream;
 public class MessageSender {
     private static final Logger logger = LoggerFactory.getLogger(MessageSender.class);
 
+    /**
+     * -- GETTER --
+     *  Get the bot instance
+     */
+    @Getter
     private final TelegramBot bot;
     private final MessageService messageService;
 
     public MessageSender(TelegramBot bot, MessageService messageService) {
         this.bot = bot;
         this.messageService = messageService;
-    }
-
-    /**
-     * Get the bot instance
-     */
-    public TelegramBot getBot() {
-        return bot;
     }
 
     /**

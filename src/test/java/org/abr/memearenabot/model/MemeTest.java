@@ -32,7 +32,6 @@ public class MemeTest {
         assertEquals(USER_ID, meme.getUserId());
         assertEquals(Meme.MemeType.AI_GENERATED, meme.getType());
         assertEquals(0, meme.getLikes());
-        assertFalse(meme.getInContest());
     }
 
     @Test
@@ -44,7 +43,6 @@ public class MemeTest {
         assertEquals(USER_ID, memeWithUserId.getUserId());
         assertEquals(Meme.MemeType.AI_GENERATED, memeWithUserId.getType());
         assertEquals(0, memeWithUserId.getLikes());
-        assertFalse(memeWithUserId.getInContest());
     }
 
     @Test

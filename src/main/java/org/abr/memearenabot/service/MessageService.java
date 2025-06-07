@@ -83,73 +83,40 @@ public class MessageService {
         return getMessage("command.ai.prompt");
     }
 
-    public String getTemplateChooseMessage() {
-        return getMessage("command.template.choose");
-    }
-
-    public String getTemplateTextMessage(String templateName) {
-        return getMessage("command.template.text", templateName);
-    }
-
     public String getContestInfoMessage() {
         return getMessage("command.contest.info");
     }
 
-    public String getNftInfoMessage() {
-        return getMessage("command.nft.info");
-    }
-
-    // Meme generation messages
+    /**
+     * Get meme generating message
+     */
     public String getMemeGeneratingMessage() {
         return getMessage("meme.generating");
     }
 
+    /**
+     * Get meme generating AI message
+     */
     public String getMemeGeneratingAiMessage() {
         return getMessage("meme.generating.ai");
     }
 
-    public String getMemeGeneratingTemplateMessage() {
-        return getMessage("meme.generating.template");
-    }
-
-    public String getMemeGeneratingVoiceMessage() {
-        return getMessage("meme.generating.voice");
-    }
-
+    /**
+     * Get meme result AI message
+     */
     public String getMemeResultAiMessage() {
         return getMessage("meme.result.ai");
     }
 
-    public String getMemeResultTemplateMessage() {
-        return getMessage("meme.result.template");
-    }
-
-    public String getMemeResultVoiceMessage() {
-        return getMessage("meme.result.voice");
-    }
-
+    /**
+     * Get meme error AI message
+     */
     public String getMemeErrorAiMessage() {
         return getMessage("meme.error.ai");
     }
 
-    public String getMemeErrorTemplateMessage() {
-        return getMessage("meme.error.template");
-    }
-
-    public String getMemeErrorVoiceMessage() {
-        return getMessage("meme.error.voice");
-    }
-
-    public String getMemeErrorVoiceDownloadMessage() {
-        return getMessage("meme.error.voice.download");
-    }
-
     public String getMemeErrorAiDisabledMessage() {
         return getMessage("meme.error.ai.disabled");
-    }
-
-    public String getMemeErrorVoiceDisabledMessage() {
-        return getMessage("meme.error.voice.disabled");
     }
 
     public String getMemeErrorDescriptionLongMessage() {
@@ -161,18 +128,23 @@ public class MessageService {
     }
 
     // Meme action messages
+    /**
+     * Get meme action publish message
+     */
     public String getMemeActionPublishMessage() {
         return getMessage("meme.action.publish");
     }
 
+    /**
+     * Get meme action contest message
+     */
     public String getMemeActionContestMessage() {
         return getMessage("meme.action.contest");
     }
 
-    public String getMemeActionNftMessage() {
-        return getMessage("meme.action.nft");
-    }
-
+    /**
+     * Get meme action new message
+     */
     public String getMemeActionNewMessage() {
         return getMessage("meme.action.new");
     }
@@ -193,45 +165,26 @@ public class MessageService {
         return getMessage("meme.contest.error");
     }
 
-    public String getMemeNftSuccessMessage(String nftUrl) {
-        return getMessage("meme.nft.success", nftUrl);
-    }
-
-    public String getMemeNftErrorMessage() {
-        return getMessage("meme.nft.error");
-    }
-
     // Keyboard button messages
+    /**
+     * Get keyboard AI message
+     */
     public String getKeyboardAiMessage() {
         return getMessage("keyboard.ai");
     }
 
-    public String getKeyboardTemplateMessage() {
-        return getMessage("keyboard.template");
-    }
-
-    public String getKeyboardVoiceMessage() {
-        return getMessage("keyboard.voice");
-    }
-
+    /**
+     * Get keyboard contest message
+     */
     public String getKeyboardContestMessage() {
         return getMessage("keyboard.contest");
     }
 
-    public String getKeyboardMonetizationMessage() {
-        return getMessage("keyboard.monetization");
-    }
-
+    /**
+     * Get keyboard help message
+     */
     public String getKeyboardHelpMessage() {
         return getMessage("keyboard.help");
-    }
-
-    public String getKeyboardUserLoginMessage() {
-        return getMessage("keyboard.user_login");
-    }
-
-    public String getKeyboardAdminLoginMessage() {
-        return getMessage("keyboard.admin_login");
     }
 
     /**
@@ -295,5 +248,12 @@ public class MessageService {
      */
     public String getLocalizedText(String code, Object... args) {
         return getMessage(code, args);
+    }
+
+    /**
+     * Get meme error AI limit message
+     */
+    public String getMemeErrorAiLimitMessage() {
+        return getMessage("meme.error.ai.limit");
     }
 } 

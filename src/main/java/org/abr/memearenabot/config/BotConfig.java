@@ -29,20 +29,10 @@ public class BotConfig {
     private String botUsername;
 
     @Bean
-    public TelegramBot telegramBot(
-            MemeService memeService, 
-            UserService userService, 
-            MessageService messageService, 
-            ContestService contestService, 
-            InputValidator inputValidator) {
+    public TelegramBot telegramBot(MemeService memeService, UserService userService, MessageService messageService,
+                                   ContestService contestService, InputValidator inputValidator) {
         logger.info("Initializing Telegram bot with username: {}", botUsername);
-        return new TelegramBot(
-                memeService,
-                userService,
-                messageService,
-                contestService,
-                inputValidator
-        );
+        return new TelegramBot(memeService, userService, messageService, contestService, inputValidator);
     }
 
     @Bean

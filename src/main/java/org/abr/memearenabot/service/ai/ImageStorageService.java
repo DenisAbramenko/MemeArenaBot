@@ -6,10 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,8 +21,6 @@ import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
-
-import javax.imageio.ImageIO;
 
 /**
  * Сервис для хранения изображений
@@ -218,7 +214,6 @@ public class ImageStorageService {
             try {
                 // Create a simple colored image as fallback
                 createFallbackImage(targetPath);
-                return;
             } catch (Exception fallbackEx) {
                 log.error("{}Failed to create fallback image", LOG_PREFIX, fallbackEx);
                 throw new IOException("Failed to download file from URL: " + fileUrl, e);
@@ -228,7 +223,7 @@ public class ImageStorageService {
 
     /**
      * Creates a simple fallback image when remote image download fails
-     * 
+     *
      * @param targetPath Path to save the fallback image
      * @throws IOException if unable to create the fallback image
      */
@@ -236,18 +231,18 @@ public class ImageStorageService {
         // Create a simple 600x400 solid color image with text
         int width = 600;
         int height = 400;
-        
+
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
-        
+
         // Set background color (light gray)
         g.setColor(new Color(240, 240, 240));
         g.fillRect(0, 0, width, height);
-        
+
         // Draw a border
         g.setColor(Color.DARK_GRAY);
         g.drawRect(5, 5, width - 10, height - 10);
-        
+
         // Draw text
         g.setColor(Color.BLACK);
         g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -255,14 +250,14 @@ public class ImageStorageService {
         FontMetrics fm = g.getFontMetrics();
         int textWidth = fm.stringWidth(message);
         g.drawString(message, (width - textWidth) / 2, height / 2);
-        
+
         g.dispose();
-        
+
         // Write the image to the target path
         try (OutputStream out = new FileOutputStream(targetPath.toFile())) {
             ImageIO.write(image, "png", out);
         }
-        
+
         log.info("{}Created fallback image at: {}", LOG_PREFIX, targetPath);
     }
 

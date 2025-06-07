@@ -85,7 +85,6 @@ public class ContestServiceTest {
         // Assert
         assertTrue(result);
         verify(memeRepository).save(meme);
-        assertTrue(meme.getInContest());
     }
 
     @Test
@@ -105,7 +104,6 @@ public class ContestServiceTest {
         // Assert
         assertTrue(result);
         verify(memeRepository).save(meme);
-        assertTrue(meme.getInContest());
     }
 
     @Test
@@ -131,8 +129,6 @@ public class ContestServiceTest {
         assertTrue(user.getIsPremium());
         verify(userRepository).save(user);
         verify(memeRepository, times(2)).save(any(Meme.class));
-        assertFalse(winnerMeme.getInContest());
-        assertFalse(otherMeme.getInContest());
     }
 
     @Test

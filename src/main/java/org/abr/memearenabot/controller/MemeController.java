@@ -56,13 +56,4 @@ public class MemeController {
             return ResponseEntity.notFound().build();
         }
     }
-
-    /**
-     * Get available templates
-     */
-    @GetMapping("/templates")
-    public ResponseEntity<List<String>> getTemplates() {
-        logger.info("REST request to get available templates");
-        return ResponseEntity.ok(memeService.getAvailableTemplates());
-    }
 } 
